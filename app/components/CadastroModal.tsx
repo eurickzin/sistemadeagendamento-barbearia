@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+
 import { createClient } from "@/lib/supabase/client";
 
 interface CadastroModalProps {
@@ -18,7 +19,7 @@ export default function CadastroModal({
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [confirmarSenha, setConfirmarSenha] = useState("");
-
+  const [telefone, setTelefone] = useState("");
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState("");
   const [carregando, setCarregando] = useState(false);
@@ -28,6 +29,11 @@ export default function CadastroModal({
 
     setErro("");
     setSucesso("");
+
+    if (!nome || !telefone || !email || !senha || !confirmarSenha) {
+      setErro("Preencha todos os campos.");
+      return;
+    }
 
     if (senha !== confirmarSenha) {
       setErro("As senhas não coincidem.");
@@ -39,15 +45,19 @@ export default function CadastroModal({
       return;
     }
 
-setCarregando(true);
+    setCarregando(true);
 
-console.log("SUPABASE URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
-console.log(
-  "SUPABASE KEY:",
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-);
+    console.log(
+      "SUPABASE URL:",
+      process.env.NEXT_PUBLIC_SUPABASE_URL
+    );
 
-const supabase = createClient();
+    console.log(
+      "SUPABASE KEY:",
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+    );
+
+    const supabase = createClient();
 
     const { error } = await supabase.auth.signUp({
       email,
@@ -55,6 +65,7 @@ const supabase = createClient();
       options: {
         data: {
           nome,
+          telefone,
         },
       },
     });
@@ -70,10 +81,10 @@ const supabase = createClient();
     );
 
     setNome("");
+    setTelefone("");
     setEmail("");
     setSenha("");
     setConfirmarSenha("");
-
     setCarregando(false);
   }
 
@@ -94,7 +105,9 @@ const supabase = createClient();
     >
       <div
         className={`relative my-auto w-full max-w-md overflow-hidden rounded-xl border border-white/10 bg-[#0B0F14] shadow-2xl shadow-black/50 transition-all duration-300 ease-out ${
-          aberto ? "translate-y-0 scale-100" : "translate-y-3 scale-95"
+          aberto
+            ? "translate-y-0 scale-100"
+            : "translate-y-3 scale-95"
         }`}
         onClick={(e) => e.stopPropagation()}
       >
@@ -145,6 +158,26 @@ const supabase = createClient();
                 value={nome}
                 onChange={(e) => setNome(e.target.value)}
                 placeholder="Seu nome"
+                required
+                className="w-full rounded-md border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white outline-none transition-all duration-300 placeholder:text-zinc-600 focus:border-[#C9A227]/70 focus:bg-white/[0.05] focus:ring-1 focus:ring-[#C9A227]/20"
+              />
+            </div>
+
+            {/* WhatsApp */}
+            <div>
+              <label
+                htmlFor="cadastro-telefone"
+                className="mb-2 block text-sm font-medium text-zinc-300"
+              >
+                WhatsApp
+              </label>
+
+              <input
+                id="cadastro-telefone"
+                type="tel"
+                value={telefone}
+                onChange={(e) => setTelefone(e.target.value)}
+                placeholder="(84) 99999-9999"
                 required
                 className="w-full rounded-md border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white outline-none transition-all duration-300 placeholder:text-zinc-600 focus:border-[#C9A227]/70 focus:bg-white/[0.05] focus:ring-1 focus:ring-[#C9A227]/20"
               />
@@ -235,20 +268,20 @@ const supabase = createClient();
           </form>
 
           {/* Rodapé */}
-<div className="mt-6 space-y-3 text-center">
-  <p className="text-xs leading-5 text-zinc-600">
-    Ao criar sua conta, você poderá acompanhar e gerenciar seus
-    agendamentos.
-  </p>
+          <div className="mt-6 space-y-3 text-center">
+            <p className="text-xs leading-5 text-zinc-600">
+              Ao criar sua conta, você poderá acompanhar e gerenciar seus
+              agendamentos.
+            </p>
 
-  <button
-    type="button"
-    onClick={onAbrirLogin}
-    className="text-sm font-medium text-[#C9A227] transition-colors hover:text-[#E0BB35]"
-  >
-    Já possui uma conta? Entrar
-  </button>
-</div>
+            <button
+              type="button"
+              onClick={onAbrirLogin}
+              className="text-sm font-medium text-[#C9A227] transition-colors hover:text-[#E0BB35]"
+            >
+              Já possui uma conta? Entrar
+            </button>
+          </div>
         </div>
       </div>
     </div>

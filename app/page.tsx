@@ -141,9 +141,16 @@ export default function Home() {
           </div>
 
           {/* NÃO ENVOLVER O BOTÃO COM REVEAL */}
-          <div className="flex items-center gap-3">
-            <CadastroButton />
-          </div>
+<div className="flex items-center gap-3">
+  <Link
+    href="/painel/login"
+    className="rounded-md border border-white/10 px-4 py-2 text-sm font-medium text-zinc-300 transition hover:border-[#C9A227]/30 hover:bg-white/5 hover:text-white"
+  >
+    Sou barbeiro
+  </Link>
+
+  <CadastroButton />
+</div>
         </nav>
       </header>
 

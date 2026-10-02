@@ -45,10 +45,7 @@ export default function LoginBarbeiroPage() {
       .maybeSingle();
 
     if (barbeariaError) {
-      console.error(
-        "ERRO AO VERIFICAR BARBEARIA:",
-        barbeariaError
-      );
+      console.error("ERRO AO VERIFICAR BARBEARIA:", barbeariaError);
 
       setErro("Não foi possível verificar sua barbearia.");
       setCarregando(false);
@@ -58,9 +55,7 @@ export default function LoginBarbeiroPage() {
     if (!barbearia) {
       await supabase.auth.signOut();
 
-      setErro(
-        "Esta conta ainda não possui uma barbearia cadastrada."
-      );
+      setErro("Esta conta ainda não possui uma barbearia cadastrada.");
 
       setCarregando(false);
       return;
@@ -81,7 +76,6 @@ export default function LoginBarbeiroPage() {
   return (
     <main className="min-h-screen bg-[#0B0F14] text-white">
       <div className="flex min-h-screen">
-
         {/* LADO ESQUERDO */}
 
         <div className="hidden flex-1 items-center justify-center border-r border-white/10 bg-[#090D12] lg:flex">
@@ -93,22 +87,18 @@ export default function LoginBarbeiroPage() {
             <h1 className="mt-6 text-5xl font-bold leading-tight tracking-tight">
               Sua barbearia.
               <br />
-              <span className="text-[#C9A227]">
-                Sob seu controle.
-              </span>
+              <span className="text-[#C9A227]">Sob seu controle.</span>
             </h1>
 
             <p className="mt-6 max-w-md text-base leading-7 text-zinc-500">
-              Gerencie seus agendamentos, clientes, serviços e horários
-              em um único lugar.
+              Gerencie seus agendamentos, clientes, serviços e horários em um
+              único lugar.
             </p>
 
             <div className="mt-10 grid grid-cols-2 gap-3">
               <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
                 <p className="text-2xl">📅</p>
-                <p className="mt-4 text-sm font-semibold">
-                  Agenda organizada
-                </p>
+                <p className="mt-4 text-sm font-semibold">Agenda organizada</p>
                 <p className="mt-1 text-xs leading-5 text-zinc-600">
                   Tenha seus horários sempre à mão.
                 </p>
@@ -116,9 +106,7 @@ export default function LoginBarbeiroPage() {
 
               <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
                 <p className="text-2xl">✂️</p>
-                <p className="mt-4 text-sm font-semibold">
-                  Gestão simples
-                </p>
+                <p className="mt-4 text-sm font-semibold">Gestão simples</p>
                 <p className="mt-1 text-xs leading-5 text-zinc-600">
                   Controle sua operação sem complicação.
                 </p>
@@ -131,7 +119,6 @@ export default function LoginBarbeiroPage() {
 
         <div className="flex w-full items-center justify-center px-6 py-12 lg:w-[520px] lg:px-12">
           <div className="w-full max-w-md">
-
             {/* LOGO */}
 
             <div className="mb-10 lg:hidden">
@@ -139,6 +126,15 @@ export default function LoginBarbeiroPage() {
                 NA RÉGUA+
               </p>
             </div>
+
+            <button
+              type="button"
+              onClick={() => router.push("/")}
+              className="mb-8 inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-medium text-zinc-400 transition hover:border-[#C9A227]/30 hover:bg-[#C9A227]/5 hover:text-white"
+            >
+              <span className="text-base">←</span>
+              Voltar
+            </button>
 
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#C9A227]">
@@ -154,10 +150,7 @@ export default function LoginBarbeiroPage() {
               </p>
             </div>
 
-            <form
-              onSubmit={handleLogin}
-              className="mt-8 space-y-5"
-            >
+            <form onSubmit={handleLogin} className="mt-8 space-y-5">
               <div>
                 <label
                   htmlFor="barbeiro-email"
@@ -218,16 +211,14 @@ export default function LoginBarbeiroPage() {
                 disabled={carregando}
                 className="w-full rounded-xl bg-[#C9A227] px-5 py-3.5 text-sm font-semibold text-black transition hover:-translate-y-[1px] hover:bg-[#E0BB35] disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {carregando
-                  ? "Entrando..."
-                  : "Entrar no painel"}
+                {carregando ? "Entrando..." : "Entrar no painel"}
               </button>
             </form>
 
             <div className="mt-8 border-t border-white/10 pt-6 text-center">
               <p className="text-xs leading-5 text-zinc-600">
-                Este acesso é exclusivo para proprietários de
-                barbearias cadastradas no Na Régua+.
+                Este acesso é exclusivo para proprietários de barbearias
+                cadastradas no Na Régua+.
               </p>
 
               <button
@@ -238,10 +229,8 @@ export default function LoginBarbeiroPage() {
                 Voltar para o site
               </button>
             </div>
-
           </div>
         </div>
-
       </div>
     </main>
   );
