@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 interface LoginModalProps {
@@ -14,9 +15,10 @@ export default function LoginModal({
   onFechar,
   onAbrirCadastro,
 }: LoginModalProps) {
+  const router = useRouter();
+
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
-
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState("");
   const [carregando, setCarregando] = useState(false);
@@ -42,15 +44,15 @@ export default function LoginModal({
     }
 
     setSucesso("Login realizado com sucesso!");
-
     setEmail("");
     setSenha("");
-
     setCarregando(false);
 
     setTimeout(() => {
       onFechar();
-    }, 800);
+      router.push("/minha-conta");
+      router.refresh();
+    }, 500);
   }
 
   function fecharModal() {

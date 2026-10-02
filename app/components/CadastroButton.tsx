@@ -1,14 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+
 import { createClient } from "@/lib/supabase/client";
+
 import CadastroModal from "./CadastroModal";
 import LoginModal from "./LoginModal";
 
 export default function CadastroButton() {
   const [cadastroAberto, setCadastroAberto] = useState(false);
   const [loginAberto, setLoginAberto] = useState(false);
-
   const [logado, setLogado] = useState(false);
   const [carregando, setCarregando] = useState(true);
 
@@ -49,7 +50,7 @@ export default function CadastroButton() {
 
   if (carregando) {
     return (
-      <div className="h-10 w-24 animate-pulse rounded-md bg-white/5" />
+      <div className="h-12 w-32 animate-pulse rounded-lg bg-white/5" />
     );
   }
 
@@ -58,7 +59,7 @@ export default function CadastroButton() {
       {logado ? (
         <a
           href="/minha-conta"
-          className="rounded-md bg-[#C9A227] px-5 py-2.5 text-sm font-semibold text-black transition-all duration-300 hover:-translate-y-[1px] hover:bg-[#E0BB35]"
+          className="inline-flex items-center justify-center rounded-lg bg-[#C9A227] px-6 py-3 text-base font-bold text-black shadow-[0_0_20px_rgba(201,162,39,0.18)] transition-all duration-300 hover:-translate-y-1 hover:bg-[#E0BB35] hover:shadow-[0_0_30px_rgba(201,162,39,0.35)]"
         >
           Minha conta
         </a>
@@ -66,9 +67,9 @@ export default function CadastroButton() {
         <button
           type="button"
           onClick={abrirLogin}
-          className="rounded-md bg-[#C9A227] px-5 py-2.5 text-sm font-semibold text-black transition-all duration-300 hover:-translate-y-[1px] hover:bg-[#E0BB35]"
+          className="inline-flex items-center justify-center rounded-lg bg-[#C9A227] px-7 py-3 text-base font-bold text-black shadow-[0_0_20px_rgba(201,162,39,0.18)] transition-all duration-300 hover:-translate-y-1 hover:bg-[#E0BB35] hover:shadow-[0_0_30px_rgba(201,162,39,0.35)]"
         >
-          Entrar
+          Agendar agora
         </button>
       )}
 
