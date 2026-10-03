@@ -17,8 +17,6 @@ export default function LoginModal({
 }: LoginModalProps) {
   const router = useRouter();
 
-  const [nome, setNome] = useState("");
-  const [telefone, setTelefone] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState("");
@@ -34,24 +32,21 @@ export default function LoginModal({
 
     const supabase = createClient();
 
-    const { error } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signInWithPassword({
       email,
       password: senha,
-      options: {
-        data: {
-          nome,
-          telefone,
-        },
-      },
     });
 
     if (error) {
+      console.error("ERRO AO FAZER LOGIN:", error);
+
       setErro("E-mail ou senha incorretos.");
       setCarregando(false);
       return;
     }
 
     setSucesso("Login realizado com sucesso!");
+
     setEmail("");
     setSenha("");
     setCarregando(false);
