@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 interface CalendarioCustomizadoProps {
   value: string;
   onChange: (data: string) => void;
+  diaFolga: number | null;
 }
 
 const nomesMeses = [
@@ -34,8 +35,14 @@ const nomesDias = [
 
 function formatarData(data: Date) {
   const ano = data.getFullYear();
-  const mes = String(data.getMonth() + 1).padStart(2, "0");
-  const dia = String(data.getDate()).padStart(2, "0");
+
+  const mes = String(
+    data.getMonth() + 1
+  ).padStart(2, "0");
+
+  const dia = String(
+    data.getDate()
+  ).padStart(2, "0");
 
   return `${ano}-${mes}-${dia}`;
 }
@@ -48,121 +55,193 @@ function removerHora(data: Date) {
   return novaData;
 }
 
+function obterHoje() {
+  return removerHora(new Date());
+}
+
 export default function CalendarioCustomizado({
   value,
   onChange,
+  diaFolga,
 }: CalendarioCustomizadoProps) {
-  const hoje = useMemo(() => removerHora(new Date()), []);
+  const [hoje, setHoje] = useState(() =>
+    obterHoje()
+  );
 
   const [mesAtual, setMesAtual] = useState(() => {
     if (value) {
-      const [ano, mes] = value.split("-").map(Number);
+      const [ano, mes] = value
+        .split("-")
+        .map(Number);
 
-      return new Date(ano, mes - 1, 1);
+      return new Date(
+        ano,
+        mes - 1,
+        1
+      );
     }
 
+    const dataHoje = obterHoje();
+
     return new Date(
-      hoje.getFullYear(),
-      hoje.getMonth(),
-      1,
+      dataHoje.getFullYear(),
+      dataHoje.getMonth(),
+      1
     );
   });
+
+  // =========================================================
+  // ATUALIZAR DATA ATUAL
+  // =========================================================
+
+  useEffect(() => {
+    const atualizarHoje = () => {
+      setHoje(obterHoje());
+    };
+
+    const intervalo = setInterval(
+      atualizarHoje,
+      60 * 1000
+    );
+
+    return () => {
+      clearInterval(intervalo);
+    };
+  }, []);
+
+  // =========================================================
+  // SINCRONIZAR COM A DATA SELECIONADA
+  // =========================================================
 
   useEffect(() => {
     if (!value) return;
 
-    const [ano, mes] = value.split("-").map(Number);
+    const [ano, mes] = value
+      .split("-")
+      .map(Number);
 
-    setMesAtual(new Date(ano, mes - 1, 1));
+    if (
+      Number.isNaN(ano) ||
+      Number.isNaN(mes)
+    ) {
+      return;
+    }
+
+    setMesAtual(
+      new Date(
+        ano,
+        mes - 1,
+        1
+      )
+    );
   }, [value]);
 
-  const primeiroDiaDoMes = new Date(
-    mesAtual.getFullYear(),
-    mesAtual.getMonth(),
-    1,
-  );
+  // =========================================================
+  // PRIMEIRO DIA DO MÊS
+  // =========================================================
 
-  const ultimoDiaDoMesAtual = new Date(
-    mesAtual.getFullYear(),
-    mesAtual.getMonth() + 1,
-    0,
-  );
+  const primeiroDiaDoMes =
+    new Date(
+      mesAtual.getFullYear(),
+      mesAtual.getMonth(),
+      1
+    );
 
-  const primeiroDiaDoProximoMes = new Date(
-    mesAtual.getFullYear(),
-    mesAtual.getMonth() + 1,
-    1,
-  );
+  // =========================================================
+  // AJUSTAR CALENDÁRIO PARA COMEÇAR NA SEGUNDA
+  // =========================================================
 
-  const ultimoDiaDoProximoMes = new Date(
-    mesAtual.getFullYear(),
-    mesAtual.getMonth() + 2,
-    0,
-  );
-
-  const primeiroDiaDaGrade = new Date(
-    primeiroDiaDoMes,
-  );
-
-  // JavaScript:
-  // Domingo = 0
-  // Segunda = 1
-  // Terça = 2
-  // ...
-  //
-  // Como nosso calendário começa na segunda,
-  // ajustamos o deslocamento.
-
-  const diaSemana = primeiroDiaDoMes.getDay();
+  const diaSemana =
+    primeiroDiaDoMes.getDay();
 
   const deslocamento =
-    diaSemana === 0 ? 6 : diaSemana - 1;
+    diaSemana === 0
+      ? 6
+      : diaSemana - 1;
+
+  const primeiroDiaDaGrade =
+    new Date(
+      primeiroDiaDoMes
+    );
 
   primeiroDiaDaGrade.setDate(
-    primeiroDiaDaGrade.getDate() - deslocamento,
+    primeiroDiaDaGrade.getDate() -
+      deslocamento
   );
+
+  // =========================================================
+  // GERAR 42 DIAS
+  // =========================================================
 
   const dias = Array.from(
     { length: 42 },
     (_, index) => {
-      const data = new Date(primeiroDiaDaGrade);
+      const data =
+        new Date(
+          primeiroDiaDaGrade
+        );
 
       data.setDate(
-        primeiroDiaDaGrade.getDate() + index,
+        primeiroDiaDaGrade.getDate() +
+          index
       );
 
       return data;
-    },
+    }
   );
 
-  function mudarMes(direcao: number) {
+  // =========================================================
+  // MUDAR MÊS
+  // =========================================================
+
+  function mudarMes(
+    direcao: number
+  ) {
     setMesAtual(
       new Date(
         mesAtual.getFullYear(),
-        mesAtual.getMonth() + direcao,
-        1,
-      ),
+        mesAtual.getMonth() +
+          direcao,
+        1
+      )
     );
   }
 
+  // =========================================================
+  // VOLTAR PARA HOJE
+  // =========================================================
+
   function voltarParaHoje() {
+    const dataHoje =
+      obterHoje();
+
+    setHoje(dataHoje);
+
     setMesAtual(
       new Date(
-        hoje.getFullYear(),
-        hoje.getMonth(),
-        1,
-      ),
+        dataHoje.getFullYear(),
+        dataHoje.getMonth(),
+        1
+      )
     );
   }
+
+  // =========================================================
+  // RENDER
+  // =========================================================
 
   return (
     <div className="w-full">
-      {/* CABEÇALHO DO CALENDÁRIO */}
+
+      {/* CABEÇALHO */}
 
       <div className="mb-5 flex items-center justify-between">
+
         <button
           type="button"
-          onClick={() => mudarMes(-1)}
+          onClick={() =>
+            mudarMes(-1)
+          }
           className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 text-zinc-400 transition-all hover:border-[#C9A227]/40 hover:bg-[#C9A227]/10 hover:text-[#C9A227]"
           aria-label="Mês anterior"
         >
@@ -170,96 +249,178 @@ export default function CalendarioCustomizado({
         </button>
 
         <div className="text-center">
+
           <h3 className="text-lg font-semibold text-white">
-            {nomesMeses[mesAtual.getMonth()]}
+            {
+              nomesMeses[
+                mesAtual.getMonth()
+              ]
+            }
           </h3>
 
           <p className="text-sm text-zinc-500">
             {mesAtual.getFullYear()}
           </p>
+
         </div>
 
         <button
           type="button"
-          onClick={() => mudarMes(1)}
+          onClick={() =>
+            mudarMes(1)
+          }
           className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 text-zinc-400 transition-all hover:border-[#C9A227]/40 hover:bg-[#C9A227]/10 hover:text-[#C9A227]"
           aria-label="Próximo mês"
         >
           ›
         </button>
+
       </div>
 
       {/* VOLTAR PARA HOJE */}
 
       <div className="mb-4 flex justify-center">
+
         <button
           type="button"
-          onClick={voltarParaHoje}
+          onClick={
+            voltarParaHoje
+          }
           className="text-xs font-medium text-[#C9A227] transition-colors hover:text-[#E0BB35]"
         >
           Voltar para hoje
         </button>
+
       </div>
 
       {/* DIAS DA SEMANA */}
 
       <div className="mb-2 grid grid-cols-7">
-        {nomesDias.map((dia) => (
-          <div
-            key={dia}
-            className="flex h-9 items-center justify-center text-[11px] font-semibold text-zinc-500"
-          >
-            {dia}
-          </div>
-        ))}
+
+        {nomesDias.map(
+          (dia) => (
+            <div
+              key={dia}
+              className="flex h-9 items-center justify-center text-[11px] font-semibold text-zinc-500"
+            >
+              {dia}
+            </div>
+          )
+        )}
+
       </div>
 
       {/* DIAS */}
 
       <div className="grid grid-cols-7 gap-1">
+
         {dias.map((data) => {
-          const dataFormatada = formatarData(data);
 
-          const dataSemHora = removerHora(data);
+          const dataFormatada =
+            formatarData(data);
 
-          const passado = dataSemHora < hoje;
+          const dataSemHora =
+            removerHora(data);
 
-          // JavaScript:
+          // =================================================
+          // DIA JÁ PASSOU
+          // =================================================
+
+          const passado =
+            dataSemHora.getTime() <
+            hoje.getTime();
+
+          // =================================================
+          // DIA DA SEMANA
+          //
+          // Domingo = 0
           // Segunda = 1
-          const diaDaSemana = dataSemHora.getDay();
+          // Terça = 2
+          // Quarta = 3
+          // Quinta = 4
+          // Sexta = 5
+          // Sábado = 6
+          // =================================================
 
-          // Segunda-feira está fechada
-          const diaFechado = diaDaSemana === 1;
+          const diaDaSemana =
+            dataSemHora.getDay();
+
+          // =================================================
+          // HOJE
+          // =================================================
+
+          const hojeAtual =
+            dataFormatada ===
+            formatarData(hoje);
+
+          // =================================================
+          // DIA DE FOLGA
+          //
+          // Agora vem do Supabase.
+          //
+          // Exemplo:
+          // diaFolga = 1 → Segunda
+          // diaFolga = 2 → Terça
+          // diaFolga = 6 → Sábado
+          //
+          // null = nenhum dia configurado
+          // =================================================
+
+          const diaFechado =
+            diaFolga !== null &&
+            diaDaSemana ===
+              diaFolga;
+
+          // =================================================
+          // PERTENCE AO MÊS ATUAL
+          // =================================================
 
           const pertenceAoMes =
-            data.getMonth() === mesAtual.getMonth() &&
+            data.getMonth() ===
+              mesAtual.getMonth() &&
             data.getFullYear() ===
               mesAtual.getFullYear();
 
-          const pertenceAoMesAtualOuProximo =
-            (data >= primeiroDiaDoMes &&
-              data <= ultimoDiaDoMesAtual) ||
-            (data >= primeiroDiaDoProximoMes &&
-              data <= ultimoDiaDoProximoMes);
+          // =================================================
+          // DATA SELECIONADA
+          // =================================================
 
           const selecionada =
-            value === dataFormatada;
+            value ===
+            dataFormatada;
 
-          const hojeAtual =
-            dataFormatada === formatarData(hoje);
+          // =================================================
+          // DESABILITADO
+          //
+          // Importante:
+          //
+          // Hoje NÃO é considerado passado.
+          //
+          // O horário de hoje é tratado
+          // pelo AgendamentoModal.
+          // =================================================
 
           const desabilitado =
-            passado || diaFechado;
+            passado ||
+            diaFechado;
 
           return (
             <button
               key={dataFormatada}
               type="button"
-              disabled={desabilitado}
+              disabled={
+                desabilitado
+              }
               onClick={() => {
-                if (!desabilitado) {
-                  onChange(dataFormatada);
+
+                if (
+                  !desabilitado
+                ) {
+                  onChange(
+                    dataFormatada
+                  );
                 }
+
               }}
               className={`
                 relative flex aspect-square items-center justify-center
@@ -276,13 +437,13 @@ export default function CalendarioCustomizado({
                   !selecionada &&
                   !passado &&
                   !diaFechado &&
-                  pertenceAoMesAtualOuProximo
+                  pertenceAoMes
                     ? "text-zinc-200 hover:-translate-y-[1px] hover:bg-[#C9A227]/10 hover:text-[#C9A227]"
                     : ""
                 }
 
                 ${
-                  !pertenceAoMesAtualOuProximo
+                  !pertenceAoMes
                     ? "text-zinc-800"
                     : ""
                 }
@@ -309,6 +470,7 @@ export default function CalendarioCustomizado({
                 }
               `}
             >
+
               {data.getDate()}
 
               {/* INDICADOR DE HOJE */}
@@ -319,10 +481,13 @@ export default function CalendarioCustomizado({
                 !diaFechado && (
                   <span className="absolute bottom-1 h-1 w-1 rounded-full bg-[#C9A227]" />
                 )}
+
             </button>
           );
         })}
+
       </div>
+
     </div>
   );
 }

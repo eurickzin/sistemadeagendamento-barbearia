@@ -56,6 +56,12 @@ export default function DashboardLayout({
 
   const estaNaAgenda = pathname === "/painel/agenda";
 
+  const estaNasConfiguracoes =
+    pathname === "/painel/configuracoes";
+
+  const estaNoDashboard =
+    pathname === "/painel";
+
   if (carregando) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#0B0F14] text-white">
@@ -67,8 +73,11 @@ export default function DashboardLayout({
   return (
     <main className="min-h-screen bg-[#0B0F14] text-white">
       <div className="flex min-h-screen">
-        {/* SIDEBAR */}
+
+        {/* SIDEBAR DESKTOP */}
         <aside className="hidden w-64 shrink-0 border-r border-white/10 bg-[#090D12] lg:flex lg:flex-col">
+
+          {/* LOGO */}
           <div className="border-b border-white/10 px-6 py-6">
             <div className="text-xl font-black tracking-tight">
               NA RÉGUA<span className="text-[#C9A227]">+</span>
@@ -85,16 +94,20 @@ export default function DashboardLayout({
             )}
           </div>
 
+          {/* MENU */}
           <nav className="flex-1 px-3 py-5">
+
             <p className="mb-3 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-600">
               Gestão
             </p>
 
             <div className="space-y-1">
+
+              {/* DASHBOARD */}
               <Link
                 href="/painel"
                 className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition ${
-                  !estaNaAgenda
+                  estaNoDashboard
                     ? "bg-[#C9A227]/10 text-[#C9A227]"
                     : "text-zinc-500 hover:bg-white/5 hover:text-white"
                 }`}
@@ -103,6 +116,7 @@ export default function DashboardLayout({
                 Dashboard
               </Link>
 
+              {/* AGENDA */}
               <Link
                 href="/painel/agenda"
                 className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition ${
@@ -115,6 +129,7 @@ export default function DashboardLayout({
                 Agenda
               </Link>
 
+              {/* AGENDAMENTOS */}
               <button
                 type="button"
                 disabled
@@ -124,6 +139,7 @@ export default function DashboardLayout({
                 Agendamentos
               </button>
 
+              {/* CLIENTES */}
               <button
                 type="button"
                 disabled
@@ -133,6 +149,7 @@ export default function DashboardLayout({
                 Clientes
               </button>
 
+              {/* SERVIÇOS */}
               <button
                 type="button"
                 disabled
@@ -142,6 +159,7 @@ export default function DashboardLayout({
                 Serviços
               </button>
 
+              {/* HORÁRIOS */}
               <button
                 type="button"
                 disabled
@@ -150,22 +168,30 @@ export default function DashboardLayout({
                 <span className="text-lg">◫</span>
                 Horários
               </button>
+
             </div>
 
+            {/* CONTA */}
             <p className="mb-3 mt-8 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-600">
               Conta
             </p>
 
             <div className="space-y-1">
-              <button
-                type="button"
-                disabled
-                className="flex w-full cursor-not-allowed items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium text-zinc-600"
+
+              {/* CONFIGURAÇÕES */}
+              <Link
+                href="/painel/configuracoes"
+                className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition ${
+                  estaNasConfiguracoes
+                    ? "bg-[#C9A227]/10 text-[#C9A227]"
+                    : "text-zinc-500 hover:bg-white/5 hover:text-white"
+                }`}
               >
                 <span className="text-lg">⚙</span>
                 Configurações
-              </button>
+              </Link>
 
+              {/* MINHA PÁGINA */}
               <Link
                 href="/"
                 className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-zinc-500 transition hover:bg-white/5 hover:text-white"
@@ -173,9 +199,11 @@ export default function DashboardLayout({
                 <span className="text-lg">↗</span>
                 Minha página
               </Link>
+
             </div>
           </nav>
 
+          {/* SAIR */}
           <div className="border-t border-white/10 p-3">
             <button
               onClick={sair}
@@ -189,20 +217,35 @@ export default function DashboardLayout({
 
         {/* CONTEÚDO */}
         <div className="min-w-0 flex-1">
+
+          {/* HEADER */}
           <header className="sticky top-0 z-20 border-b border-white/10 bg-[#0B0F14]/80 backdrop-blur-xl">
             <div className="flex h-20 items-center justify-between px-6 lg:px-10">
+
               <div>
+
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#C9A227]">
-                  {estaNaAgenda ? "Agenda" : "Dashboard"}
+                  {estaNaAgenda
+                    ? "Agenda"
+                    : estaNasConfiguracoes
+                      ? "Configurações"
+                      : "Dashboard"}
                 </p>
 
                 <h1 className="mt-1 text-xl font-bold">
-                  Olá, barbeiro 👋
+                  {estaNasConfiguracoes
+                    ? "Configurações"
+                    : estaNaAgenda
+                      ? "Agenda"
+                      : "Olá, barbeiro 👋"}
                 </h1>
+
               </div>
 
               <div className="flex items-center gap-5">
+
                 <div className="hidden text-right sm:block">
+
                   <p className="text-sm font-semibold text-white">
                     {barbearia?.nome || "Na Régua+"}
                   </p>
@@ -215,22 +258,27 @@ export default function DashboardLayout({
                       year: "numeric",
                     })}
                   </p>
+
                 </div>
 
                 <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5">
                   <span className="text-lg">🔔</span>
                 </div>
+
               </div>
             </div>
           </header>
 
           {/* MENU MOBILE */}
           <div className="border-b border-white/10 px-4 py-3 lg:hidden">
+
             <div className="flex gap-2 overflow-x-auto">
+
+              {/* DASHBOARD */}
               <Link
                 href="/painel"
                 className={`whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium ${
-                  !estaNaAgenda
+                  estaNoDashboard
                     ? "bg-[#C9A227]/10 text-[#C9A227]"
                     : "text-zinc-500"
                 }`}
@@ -238,6 +286,7 @@ export default function DashboardLayout({
                 Dashboard
               </Link>
 
+              {/* AGENDA */}
               <Link
                 href="/painel/agenda"
                 className={`whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium ${
@@ -248,12 +297,27 @@ export default function DashboardLayout({
               >
                 Agenda
               </Link>
+
+              {/* CONFIGURAÇÕES */}
+              <Link
+                href="/painel/configuracoes"
+                className={`whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium ${
+                  estaNasConfiguracoes
+                    ? "bg-[#C9A227]/10 text-[#C9A227]"
+                    : "text-zinc-500"
+                }`}
+              >
+                Configurações
+              </Link>
+
             </div>
           </div>
 
+          {/* PÁGINA */}
           <div className="px-6 py-8 lg:px-10 lg:py-10">
             {children}
           </div>
+
         </div>
       </div>
     </main>
