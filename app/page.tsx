@@ -183,16 +183,27 @@ export default function Home() {
                 você focar no que realmente importa: seus clientes.
               </p>
 
-              <div className="mt-10">
-                <Reveal direction="up" delay={200}>
-                  <a
-                    href="#funcionalidades"
-                    className="block rounded-md border border-white/15 px-7 py-4 text-center font-semibold text-white transition hover:-translate-y-[1px] hover:border-white/25 hover:bg-white/5"
-                  >
-                    Conhecer o sistema
-                  </a>
-                </Reveal>
-              </div>
+
+<div className="mt-10 flex flex-col gap-4 sm:flex-row">
+  <Reveal direction="up" delay={200}>
+    <Link
+      href="/barbearias"
+      className="inline-flex items-center justify-center gap-2 rounded-md bg-[#C9A227] px-7 py-4 font-semibold text-[#0B0F14] transition hover:-translate-y-[1px] hover:bg-[#E0BB35]"
+    >
+      Procurar barbearias
+      <span aria-hidden="true">→</span>
+    </Link>
+  </Reveal>
+
+  <Reveal direction="up" delay={300}>
+    <a
+      href="#funcionalidades"
+      className="inline-flex items-center justify-center rounded-md border border-white/15 px-7 py-4 text-center font-semibold text-white transition hover:-translate-y-[1px] hover:border-white/25 hover:bg-white/5"
+    >
+      Conhecer o sistema
+    </a>
+  </Reveal>
+</div>
 
               <Reveal direction="up" delay={300}>
                 <div className="mt-10 flex flex-wrap gap-x-8 gap-y-3 text-sm text-zinc-500">
