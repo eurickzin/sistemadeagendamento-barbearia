@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, type FormEvent } from "react";
@@ -20,64 +21,63 @@ export default function LoginBarbeiroPage() {
 
     const supabase = createClient();
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password: senha,
-    });
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password: senha,
+      });
 
-    if (error) {
-      console.error("ERRO LOGIN BARBEIRO:", error);
-      setErro("E-mail ou senha incorretos.");
+      if (error) {
+        console.error("ERRO LOGIN BARBEIRO:", error);
+        setErro("E-mail ou senha incorretos.");
+        return;
+      }
+
+      if (!data.user) {
+        setErro("Não foi possível identificar sua conta.");
+        return;
+      }
+
+      const { data: barbearia, error: barbeariaError } = await supabase
+        .from("barbearias")
+        .select("id, nome, ativa")
+        .eq("proprietario_id", data.user.id)
+        .maybeSingle();
+
+      if (barbeariaError) {
+        console.error("ERRO AO VERIFICAR BARBEARIA:", barbeariaError);
+        setErro("Não foi possível verificar sua barbearia.");
+        return;
+      }
+
+      // Se ainda não possui barbearia, mantém a sessão
+      // e encaminha o usuário para a tela de cadastro.
+      if (!barbearia) {
+        router.replace("/painel/cadastrar-barbearia");
+        return;
+      }
+
+      // Impede o acesso ao painel se a barbearia estiver desativada.
+      if (!barbearia.ativa) {
+        await supabase.auth.signOut();
+        setErro("Sua barbearia está desativada no momento.");
+        return;
+      }
+
+      router.replace("/painel");
+      router.refresh();
+    } catch (error) {
+      console.error("ERRO INESPERADO NO LOGIN:", error);
+      setErro("Ocorreu um erro inesperado. Tente novamente.");
+    } finally {
       setCarregando(false);
-      return;
     }
-
-    if (!data.user) {
-      setErro("Não foi possível identificar sua conta.");
-      setCarregando(false);
-      return;
-    }
-
-    const { data: barbearia, error: barbeariaError } = await supabase
-      .from("barbearias")
-      .select("id, nome, ativa")
-      .eq("proprietario_id", data.user.id)
-      .maybeSingle();
-
-    if (barbeariaError) {
-      console.error("ERRO AO VERIFICAR BARBEARIA:", barbeariaError);
-
-      setErro("Não foi possível verificar sua barbearia.");
-      setCarregando(false);
-      return;
-    }
-
-    if (!barbearia) {
-      await supabase.auth.signOut();
-
-      setErro("Esta conta ainda não possui uma barbearia cadastrada.");
-
-      setCarregando(false);
-      return;
-    }
-
-    if (!barbearia.ativa) {
-      await supabase.auth.signOut();
-
-      setErro("Sua barbearia está desativada no momento.");
-      setCarregando(false);
-      return;
-    }
-
-    router.push("/painel");
-    router.refresh();
   }
 
   return (
     <main className="min-h-screen bg-[#0B0F14] text-white">
       <div className="flex min-h-screen">
         {/* LADO ESQUERDO */}
-
         <div className="hidden flex-1 items-center justify-center border-r border-white/10 bg-[#090D12] lg:flex">
           <div className="max-w-lg px-12">
             <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[#C9A227]">
@@ -98,7 +98,9 @@ export default function LoginBarbeiroPage() {
             <div className="mt-10 grid grid-cols-2 gap-3">
               <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
                 <p className="text-2xl">📅</p>
-                <p className="mt-4 text-sm font-semibold">Agenda organizada</p>
+                <p className="mt-4 text-sm font-semibold">
+                  Agenda organizada
+                </p>
                 <p className="mt-1 text-xs leading-5 text-zinc-600">
                   Tenha seus horários sempre à mão.
                 </p>
@@ -116,11 +118,9 @@ export default function LoginBarbeiroPage() {
         </div>
 
         {/* LADO DIREITO */}
-
         <div className="flex w-full items-center justify-center px-6 py-12 lg:w-[520px] lg:px-12">
           <div className="w-full max-w-md">
             {/* LOGO */}
-
             <div className="mb-10 lg:hidden">
               <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[#C9A227]">
                 NA RÉGUA+
@@ -167,6 +167,7 @@ export default function LoginBarbeiroPage() {
                   placeholder="seu@email.com"
                   autoComplete="email"
                   required
+                  disabled={carregando}
                   className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3.5 text-sm text-white outline-none transition placeholder:text-zinc-700 focus:border-[#C9A227]/70 focus:bg-white/[0.05] focus:ring-1 focus:ring-[#C9A227]/20"
                 />
               </div>
@@ -182,6 +183,11 @@ export default function LoginBarbeiroPage() {
 
                   <button
                     type="button"
+                    onClick={() =>
+                      setErro(
+                        "Para recuperar sua senha, entre em contato com o suporte."
+                      )
+                    }
                     className="text-xs text-zinc-600 transition hover:text-[#C9A227]"
                   >
                     Esqueci minha senha
@@ -196,12 +202,16 @@ export default function LoginBarbeiroPage() {
                   placeholder="Sua senha"
                   autoComplete="current-password"
                   required
+                  disabled={carregando}
                   className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3.5 text-sm text-white outline-none transition placeholder:text-zinc-700 focus:border-[#C9A227]/70 focus:bg-white/[0.05] focus:ring-1 focus:ring-[#C9A227]/20"
                 />
               </div>
 
               {erro && (
-                <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm leading-5 text-red-400">
+                <div
+                  role="alert"
+                  className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm leading-5 text-red-400"
+                >
                   {erro}
                 </div>
               )}

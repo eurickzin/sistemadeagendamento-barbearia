@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -33,11 +34,15 @@ export default function DashboardLayout({
         return;
       }
 
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("barbearias")
         .select("id, nome")
         .eq("proprietario_id", user.id)
         .maybeSingle();
+
+      if (error) {
+        console.error("Erro ao carregar barbearia:", error);
+      }
 
       if (data) {
         setBarbearia(data);
@@ -55,12 +60,25 @@ export default function DashboardLayout({
   }
 
   const estaNaAgenda = pathname === "/painel/agenda";
+  const estaNasConfiguracoes = pathname === "/painel/configuracoes";
+  const estaNosServicos = pathname === "/painel/servicos";
+  const estaNoDashboard = pathname === "/painel";
 
-  const estaNasConfiguracoes =
-    pathname === "/painel/configuracoes";
+  const tituloPagina = estaNosServicos
+    ? "Meus serviços"
+    : estaNaAgenda
+      ? "Agenda"
+      : estaNasConfiguracoes
+        ? "Configurações"
+        : "Olá, barbeiro 👋";
 
-  const estaNoDashboard =
-    pathname === "/painel";
+  const secaoAtual = estaNosServicos
+    ? "Serviços"
+    : estaNaAgenda
+      ? "Agenda"
+      : estaNasConfiguracoes
+        ? "Configurações"
+        : "Dashboard";
 
   if (carregando) {
     return (
@@ -70,22 +88,32 @@ export default function DashboardLayout({
     );
   }
 
+  const classeLink = (ativo: boolean) =>
+    `flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition ${
+      ativo
+        ? "bg-[#C9A227]/10 text-[#C9A227]"
+        : "text-zinc-500 hover:bg-white/5 hover:text-white"
+    }`;
+
+  const classeLinkMobile = (ativo: boolean) =>
+    `whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition ${
+      ativo
+        ? "bg-[#C9A227]/10 text-[#C9A227]"
+        : "text-zinc-500 hover:bg-white/5 hover:text-white"
+    }`;
+
   return (
     <main className="min-h-screen bg-[#0B0F14] text-white">
       <div className="flex min-h-screen">
-
         {/* SIDEBAR DESKTOP */}
         <aside className="hidden w-64 shrink-0 border-r border-white/10 bg-[#090D12] lg:flex lg:flex-col">
-
           {/* LOGO */}
           <div className="border-b border-white/10 px-6 py-6">
             <div className="text-xl font-black tracking-tight">
               NA RÉGUA<span className="text-[#C9A227]">+</span>
             </div>
 
-            <p className="mt-1 text-xs text-zinc-500">
-              Gestão
-            </p>
+            <p className="mt-1 text-xs text-zinc-500">Gestão</p>
 
             {barbearia?.nome && (
               <p className="mt-3 truncate text-sm font-medium text-zinc-300">
@@ -96,40 +124,24 @@ export default function DashboardLayout({
 
           {/* MENU */}
           <nav className="flex-1 px-3 py-5">
-
             <p className="mb-3 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-600">
               Gestão
             </p>
 
             <div className="space-y-1">
-
-              {/* DASHBOARD */}
-              <Link
-                href="/painel"
-                className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition ${
-                  estaNoDashboard
-                    ? "bg-[#C9A227]/10 text-[#C9A227]"
-                    : "text-zinc-500 hover:bg-white/5 hover:text-white"
-                }`}
-              >
+              <Link href="/painel" className={classeLink(estaNoDashboard)}>
                 <span className="text-lg">▦</span>
                 Dashboard
               </Link>
 
-              {/* AGENDA */}
               <Link
                 href="/painel/agenda"
-                className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition ${
-                  estaNaAgenda
-                    ? "bg-[#C9A227]/10 text-[#C9A227]"
-                    : "text-zinc-500 hover:bg-white/5 hover:text-white"
-                }`}
+                className={classeLink(estaNaAgenda)}
               >
                 <span className="text-lg">◷</span>
                 Agenda
               </Link>
 
-              {/* AGENDAMENTOS */}
               <button
                 type="button"
                 disabled
@@ -139,7 +151,6 @@ export default function DashboardLayout({
                 Agendamentos
               </button>
 
-              {/* CLIENTES */}
               <button
                 type="button"
                 disabled
@@ -149,17 +160,14 @@ export default function DashboardLayout({
                 Clientes
               </button>
 
-              {/* SERVIÇOS */}
-              <button
-                type="button"
-                disabled
-                className="flex w-full cursor-not-allowed items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium text-zinc-600"
+              <Link
+                href="/painel/servicos"
+                className={classeLink(estaNosServicos)}
               >
                 <span className="text-lg">✂</span>
                 Serviços
-              </button>
+              </Link>
 
-              {/* HORÁRIOS */}
               <button
                 type="button"
                 disabled
@@ -168,7 +176,6 @@ export default function DashboardLayout({
                 <span className="text-lg">◫</span>
                 Horários
               </button>
-
             </div>
 
             {/* CONTA */}
@@ -177,21 +184,14 @@ export default function DashboardLayout({
             </p>
 
             <div className="space-y-1">
-
-              {/* CONFIGURAÇÕES */}
               <Link
                 href="/painel/configuracoes"
-                className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition ${
-                  estaNasConfiguracoes
-                    ? "bg-[#C9A227]/10 text-[#C9A227]"
-                    : "text-zinc-500 hover:bg-white/5 hover:text-white"
-                }`}
+                className={classeLink(estaNasConfiguracoes)}
               >
                 <span className="text-lg">⚙</span>
                 Configurações
               </Link>
 
-              {/* MINHA PÁGINA */}
               <Link
                 href="/"
                 className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-zinc-500 transition hover:bg-white/5 hover:text-white"
@@ -199,7 +199,6 @@ export default function DashboardLayout({
                 <span className="text-lg">↗</span>
                 Minha página
               </Link>
-
             </div>
           </nav>
 
@@ -217,35 +216,19 @@ export default function DashboardLayout({
 
         {/* CONTEÚDO */}
         <div className="min-w-0 flex-1">
-
           {/* HEADER */}
           <header className="sticky top-0 z-20 border-b border-white/10 bg-[#0B0F14]/80 backdrop-blur-xl">
             <div className="flex h-20 items-center justify-between px-6 lg:px-10">
-
               <div>
-
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#C9A227]">
-                  {estaNaAgenda
-                    ? "Agenda"
-                    : estaNasConfiguracoes
-                      ? "Configurações"
-                      : "Dashboard"}
+                  {secaoAtual}
                 </p>
 
-                <h1 className="mt-1 text-xl font-bold">
-                  {estaNasConfiguracoes
-                    ? "Configurações"
-                    : estaNaAgenda
-                      ? "Agenda"
-                      : "Olá, barbeiro 👋"}
-                </h1>
-
+                <h1 className="mt-1 text-xl font-bold">{tituloPagina}</h1>
               </div>
 
               <div className="flex items-center gap-5">
-
                 <div className="hidden text-right sm:block">
-
                   <p className="text-sm font-semibold text-white">
                     {barbearia?.nome || "Na Régua+"}
                   </p>
@@ -258,58 +241,45 @@ export default function DashboardLayout({
                       year: "numeric",
                     })}
                   </p>
-
                 </div>
 
                 <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5">
                   <span className="text-lg">🔔</span>
                 </div>
-
               </div>
             </div>
           </header>
 
           {/* MENU MOBILE */}
           <div className="border-b border-white/10 px-4 py-3 lg:hidden">
-
             <div className="flex gap-2 overflow-x-auto">
-
-              {/* DASHBOARD */}
               <Link
                 href="/painel"
-                className={`whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium ${
-                  estaNoDashboard
-                    ? "bg-[#C9A227]/10 text-[#C9A227]"
-                    : "text-zinc-500"
-                }`}
+                className={classeLinkMobile(estaNoDashboard)}
               >
                 Dashboard
               </Link>
 
-              {/* AGENDA */}
               <Link
                 href="/painel/agenda"
-                className={`whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium ${
-                  estaNaAgenda
-                    ? "bg-[#C9A227]/10 text-[#C9A227]"
-                    : "text-zinc-500"
-                }`}
+                className={classeLinkMobile(estaNaAgenda)}
               >
                 Agenda
               </Link>
 
-              {/* CONFIGURAÇÕES */}
+              <Link
+                href="/painel/servicos"
+                className={classeLinkMobile(estaNosServicos)}
+              >
+                Serviços
+              </Link>
+
               <Link
                 href="/painel/configuracoes"
-                className={`whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium ${
-                  estaNasConfiguracoes
-                    ? "bg-[#C9A227]/10 text-[#C9A227]"
-                    : "text-zinc-500"
-                }`}
+                className={classeLinkMobile(estaNasConfiguracoes)}
               >
                 Configurações
               </Link>
-
             </div>
           </div>
 
@@ -317,7 +287,6 @@ export default function DashboardLayout({
           <div className="px-6 py-8 lg:px-10 lg:py-10">
             {children}
           </div>
-
         </div>
       </div>
     </main>

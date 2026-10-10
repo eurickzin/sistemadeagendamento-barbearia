@@ -223,33 +223,21 @@ export default function PainelPage() {
     );
   }
 
-  if (!barbearia) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="max-w-md text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#C9A227]/10 text-2xl">
-            💈
-          </div>
+if (!barbearia) {
+  router.replace("/painel/cadastrar-barbearia");
 
-          <h1 className="mt-6 text-2xl font-bold">
-            Nenhuma barbearia encontrada
-          </h1>
+  return (
+    <div className="flex min-h-[60vh] items-center justify-center">
+      <div className="text-center">
+        <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-zinc-700 border-t-[#C9A227]" />
 
-          <p className="mt-3 text-sm leading-6 text-zinc-500">
-            Sua conta ainda não possui uma barbearia cadastrada.
-          </p>
-
-          <button
-            type="button"
-            onClick={() => router.push("/")}
-            className="mt-6 rounded-xl bg-[#C9A227] px-5 py-3 text-sm font-semibold text-black transition hover:bg-[#E0BB35]"
-          >
-            Voltar para o início
-          </button>
-        </div>
+        <p className="mt-4 text-sm text-zinc-500">
+          Redirecionando...
+        </p>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   return (
     <div>
