@@ -562,7 +562,7 @@ export default function MinhaContaPage() {
   // =========================
 
   return (
-    <main className="min-h-screen bg-[#0B0F14] px-4 py-5 text-white sm:px-6 sm:py-6 lg:px-8 lg:py-10">
+    <main className="min-h-screen bg-[#0B0F14] pb-5 pl-4 pr-14 pt-16 text-white sm:pb-6 sm:pl-6 sm:pr-16 sm:pt-20 lg:pb-10 lg:pl-8 lg:pr-16 lg:pt-10">
       <div className="mx-auto max-w-6xl">
         {/* HEADER */}
         <header className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">

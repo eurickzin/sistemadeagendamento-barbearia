@@ -30,7 +30,7 @@ export default function CatalogoBarbearias({
   return (
     <main className="min-h-screen bg-[#0B0F14] text-white">
       <header className="border-b border-white/10">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4 sm:gap-4 sm:px-5 sm:py-5">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 py-4 pl-4 pr-14 sm:gap-4 sm:py-5 sm:pl-5 sm:pr-16">
           <Link href="/" className="text-xl font-black tracking-tight">
             Na Régua<span className="text-[#C9A227]">+</span>
           </Link>
@@ -151,43 +151,43 @@ export default function CatalogoBarbearias({
             )}
           </div>
         ) : (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {barbeariasFiltradas.map((barbearia) => (
               <article
                 key={barbearia.id}
-                className="group flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#11151B] transition duration-300 hover:-translate-y-1 hover:border-[#C9A227]/50"
+                className="group flex min-h-28 overflow-hidden rounded-2xl border border-white/10 bg-[#11151B] transition duration-200 hover:border-[#C9A227]/50 hover:bg-[#151A21]"
               >
-                <div className="flex h-40 items-center justify-center bg-gradient-to-br from-[#242017] to-[#15171B]">
+                <div className="flex w-24 shrink-0 items-center justify-center bg-gradient-to-br from-[#242017] to-[#15171B] sm:w-28">
                   {barbearia.logo_url ? (
                     <Image
                       src={barbearia.logo_url}
                       alt={`Logo da ${barbearia.nome}`}
-                      width={480}
-                      height={320}
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      width={112}
+                      height={112}
+                      sizes="(max-width: 640px) 96px, 112px"
                       quality={70}
                       className="h-full w-full object-cover"
                     />
                   ) : (
-                    <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-[#C9A227]/30 bg-[#C9A227]/10 text-4xl font-black text-[#C9A227]">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-[#C9A227]/30 bg-[#C9A227]/10 text-2xl font-black text-[#C9A227]">
                       {barbearia.nome.charAt(0).toUpperCase()}
                     </div>
                   )}
                 </div>
 
-                <div className="flex flex-1 flex-col p-5">
-                  <h3 className="text-xl font-bold transition group-hover:text-[#C9A227]">
+                <div className="flex min-w-0 flex-1 flex-col items-start p-3 sm:p-4">
+                  <h3 className="w-full truncate text-base font-bold transition group-hover:text-[#C9A227] sm:text-lg">
                     {barbearia.nome}
                   </h3>
 
-                  <p className="mt-3 flex-1 text-sm leading-6 text-zinc-400">
+                  <p className="mt-1.5 line-clamp-2 flex-1 text-xs leading-5 text-zinc-400 sm:text-sm">
                     {barbearia.descricao ||
                       "Conheça nossos serviços e encontre seu próximo corte."}
                   </p>
 
                   <Link
                     href={`/barbearia/${barbearia.slug}`}
-                    className="mt-6 flex items-center justify-center gap-2 rounded-xl bg-[#C9A227] px-5 py-3 font-bold text-black transition hover:bg-[#E0BB35]"
+                    className="mt-2 inline-flex min-h-8 items-center justify-center gap-1.5 rounded-lg bg-[#C9A227] px-3 py-1.5 text-xs font-bold text-black transition hover:bg-[#E0BB35]"
                   >
                     Ver barbearia
                     <span aria-hidden="true">→</span>

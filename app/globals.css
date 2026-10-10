@@ -118,10 +118,10 @@
 .theme-toggle {
   position: fixed !important;
   top: calc(env(safe-area-inset-top, 0px) + 0.75rem) !important;
-  left: 50% !important;
-  right: auto !important;
+  right: max(0.75rem, env(safe-area-inset-right, 0px)) !important;
+  left: auto !important;
   bottom: auto !important;
-  transform: translateX(-50%);
+  transform: none;
   z-index: 10000;
   touch-action: manipulation;
   backdrop-filter: blur(12px);

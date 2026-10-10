@@ -8,6 +8,7 @@ const SECOES = [
   { id: "como-funciona", label: "Como funciona", desktopLabel: "Como funciona" },
   { id: "beneficios", label: "Benefícios", desktopLabel: "Benefícios" },
   { id: "planos", label: "Planos", desktopLabel: "Planos" },
+  { id: "comece-agora", label: "Comece agora", desktopLabel: "Comece agora" },
 ];
 
 export default function LandingNavigation() {

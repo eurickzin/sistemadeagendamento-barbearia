@@ -105,7 +105,7 @@ export default function Home() {
     <main className="min-h-screen bg-[#0B0F14] text-white">
       {/* NAVBAR */}
       <header data-landing-header className="pointer-events-auto fixed left-0 top-0 z-50 w-full border-b border-white/10 bg-[#0B0F14]/90 backdrop-blur-sm sm:backdrop-blur-xl">
-        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-5">
+        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 py-3 pl-4 pr-14 sm:py-5 sm:pl-6 sm:pr-16">
           <Reveal direction="left">
             <Link
               href="#inicio"
@@ -140,7 +140,7 @@ export default function Home() {
       >
         <div className="pointer-events-none absolute left-1/2 top-0 h-64 w-64 -translate-x-1/2 rounded-full bg-[#C9A227]/10 blur-3xl sm:h-[500px] sm:w-[700px] sm:blur-[140px]" />
 
-        <div className="relative mx-auto flex min-h-[620px] max-w-6xl items-center px-4 pb-16 pt-32 sm:min-h-[760px] sm:px-6 sm:pb-24 sm:pt-40">
+        <div className="relative mx-auto flex min-h-[620px] max-w-6xl items-center px-4 pb-16 pt-40 sm:min-h-[760px] sm:px-6 sm:pb-24 sm:pt-44">
           <Reveal direction="left">
             <div className="max-w-4xl">
               <div className="mb-7 inline-flex items-center rounded-full border border-[#C9A227]/20 bg-[#C9A227]/5 px-4 py-2">
@@ -423,7 +423,7 @@ export default function Home() {
       </section>
 
 {/* CTA */}
-<section className="relative overflow-hidden py-28">
+<section id="comece-agora" className="relative scroll-mt-24 overflow-hidden py-28">
   <div className="pointer-events-none absolute left-1/2 top-1/2 h-[400px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#C9A227]/10 blur-[70px] sm:blur-[130px]" />
 
   <Reveal direction="up">
@@ -441,13 +441,39 @@ export default function Home() {
         Tenha uma gestão mais simples, uma agenda organizada e uma
         experiência melhor para seus clientes.
       </p>
+
+      <p className="mx-auto mt-8 max-w-xl text-sm leading-6 text-zinc-400">
+        Quer aderir ao sistema ou tirar dúvidas? Fale com a gente pelas redes:
+      </p>
+
+      <div className="mt-5 flex flex-wrap justify-center gap-3">
+        <a
+          href="https://wa.me/5584999466235"
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#25D366] px-5 py-3 text-sm font-bold text-[#062b14] transition hover:bg-[#32e074] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#25D366] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B0F14]"
+        >
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
+            <path d="M20.52 3.48A11.82 11.82 0 0 0 12.1 0C5.55 0 .22 5.32.22 11.87c0 2.09.55 4.13 1.59 5.93L.12 24l6.35-1.66a11.9 11.9 0 0 0 5.63 1.43h.01c6.55 0 11.88-5.33 11.88-11.88 0-3.17-1.23-6.15-3.47-8.41ZM12.11 21.75a9.9 9.9 0 0 1-5.04-1.38l-.36-.21-3.77.99 1-3.67-.24-.38a9.84 9.84 0 0 1-1.51-5.23c0-5.46 4.45-9.9 9.92-9.9a9.84 9.84 0 0 1 7.01 2.9 9.84 9.84 0 0 1 2.9 7.02c0 5.46-4.45 9.91-9.91 9.91Zm5.44-7.42c-.3-.15-1.77-.87-2.04-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.95 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.47-.89-.79-1.49-1.77-1.66-2.07-.18-.3-.02-.46.13-.61.14-.13.3-.35.45-.52.15-.18.2-.3.3-.5.1-.2.05-.38-.03-.53-.08-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.08-.8.38-.27.3-1.04 1.02-1.04 2.49s1.07 2.89 1.22 3.09c.15.2 2.1 3.2 5.08 4.49.71.31 1.27.49 1.7.63.71.23 1.35.2 1.86.12.57-.08 1.77-.72 2.02-1.42.25-.7.25-1.3.18-1.42-.08-.12-.28-.2-.58-.35Z" />
+          </svg>
+          WhatsApp <span className="hidden sm:inline">(84) 9 9946-6235</span>
+        </a>
+        <a
+          href="https://www.instagram.com/rkdigital.web/"
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#F58529] via-[#DD2A7B] to-[#8134AF] px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#DD2A7B] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B0F14]"
+        >
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
+            <rect x="3" y="3" width="18" height="18" rx="5" />
+            <circle cx="12" cy="12" r="4" />
+            <circle cx="17.5" cy="6.5" r=".8" fill="currentColor" stroke="none" />
+          </svg>
+          Instagram @rkdigital.web
+        </a>
+      </div>
     </div>
   </Reveal>
-
-  {/* BOTÃO FORA DO REVEAL */}
-  <div className="relative z-10 mt-9 flex justify-center">
-    <CadastroButton />
-  </div>
 </section>
       {/* FOOTER */}
       <footer className="border-t border-white/10 py-10">
@@ -466,8 +492,8 @@ export default function Home() {
           </Reveal>
 
           <Reveal direction="up" delay={100}>
-            <div className="flex gap-6 text-sm text-zinc-500">
-              <Link href="#inicio" className="transition hover:text-white">
+            <div className="flex flex-wrap items-center gap-3">
+              <Link href="#inicio" className="px-2 text-sm text-zinc-500 transition hover:text-white">
                 Voltar ao topo
               </Link>
             </div>

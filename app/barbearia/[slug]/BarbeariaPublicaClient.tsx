@@ -134,7 +134,7 @@ export default function PaginaPublicaBarbearia({
     <main className="min-h-screen bg-[#0B0F14] text-white">
 
 <header className="border-b border-white/10">
-  <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:gap-4 sm:px-5 sm:py-5">
+  <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 py-4 pl-4 pr-14 sm:gap-4 sm:py-5 sm:pl-5 sm:pr-16">
     <a href="/" className="text-xl font-black tracking-tight">
       Na Régua<span className="text-[#C9A227]">+</span>
     </a>
