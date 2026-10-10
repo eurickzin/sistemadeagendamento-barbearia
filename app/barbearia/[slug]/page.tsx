@@ -1,5 +1,7 @@
 import PaginaPublicaBarbearia, {
   type Barbearia,
+  type BarbeiroPublico,
+  type Servico,
 } from "./BarbeariaPublicaClient";
 import { createClient } from "@/lib/supabase/server";
 
@@ -46,6 +48,7 @@ export default async function PaginaBarbearia({
         key={slug}
         barbeariaInicial={null}
         servicosIniciais={[]}
+        barbeirosIniciais={[]}
         erroInicial="Não foi possível carregar a barbearia."
       />
     );
@@ -57,16 +60,38 @@ export default async function PaginaBarbearia({
         key={slug}
         barbeariaInicial={null}
         servicosIniciais={[]}
+        barbeirosIniciais={[]}
         erroInicial="Esta barbearia não existe ou está indisponível."
       />
     );
   }
 
+  const [resultadoServicos, resultadoBarbeiros] = await Promise.all([
+    supabase
+      .from("servicos")
+      .select("id, nome, descricao, preco, duracao, ativo")
+      .eq("barbearia_id", barbearia.id)
+      .eq("ativo", true)
+      .order("nome", { ascending: true }),
+    supabase
+      .from("barbeiros")
+      .select("id, nome, horario_abertura, horario_fechamento, dia_folga")
+      .eq("barbearia_id", barbearia.id)
+      .eq("ativo", true)
+      .order("nome", { ascending: true }),
+  ]);
+
+  if (resultadoServicos.error) console.error("Erro ao carregar serviços públicos:", resultadoServicos.error.message);
+  if (resultadoBarbeiros.error) console.error("Erro ao carregar barbeiros públicos:", resultadoBarbeiros.error.message);
+
   return (
     <PaginaPublicaBarbearia
       key={slug}
       barbeariaInicial={barbearia as Barbearia}
-      servicosIniciais={[]}
+      servicosIniciais={(resultadoServicos.data ?? []) as Servico[]}
+      barbeirosIniciais={(resultadoBarbeiros.data ?? []) as BarbeiroPublico[]}
+      erroServicosInicial={resultadoServicos.error ? "Não foi possível carregar os serviços." : ""}
+      erroBarbeirosInicial={resultadoBarbeiros.error ? "Não foi possível carregar a equipe agora." : ""}
     />
   );
 }

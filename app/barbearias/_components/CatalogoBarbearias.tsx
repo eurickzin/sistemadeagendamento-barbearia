@@ -3,6 +3,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import Icon from "@/components/ui/Icon";
 
 interface Barbearia {
@@ -158,9 +159,13 @@ export default function CatalogoBarbearias({
               >
                 <div className="flex h-40 items-center justify-center bg-gradient-to-br from-[#242017] to-[#15171B]">
                   {barbearia.logo_url ? (
-                    <img
+                    <Image
                       src={barbearia.logo_url}
                       alt={`Logo da ${barbearia.nome}`}
+                      width={480}
+                      height={320}
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      quality={70}
                       className="h-full w-full object-cover"
                     />
                   ) : (

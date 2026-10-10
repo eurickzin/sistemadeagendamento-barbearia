@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { useState } from "react";
 import Icon from "@/components/ui/Icon";
+import Image from "next/image";
 
 const AgendamentoModal = dynamic(
   () => import("@/components/booking/AgendamentoModal"),
@@ -35,7 +35,7 @@ export interface Servico {
   ativo: boolean;
 }
 
-interface BarbeiroPublico {
+export interface BarbeiroPublico {
   id: string;
   nome: string;
   horario_abertura: string;
@@ -48,75 +48,30 @@ const DIAS_SEMANA = ["domingo", "segunda-feira", "terça-feira", "quarta-feira",
 export default function PaginaPublicaBarbearia({
   barbeariaInicial,
   servicosIniciais,
+  barbeirosIniciais,
+  erroServicosInicial = "",
+  erroBarbeirosInicial = "",
   erroInicial = "",
 }: {
   barbeariaInicial: Barbearia | null;
   servicosIniciais: Servico[];
+  barbeirosIniciais: BarbeiroPublico[];
+  erroServicosInicial?: string;
+  erroBarbeirosInicial?: string;
   erroInicial?: string;
 }) {
   const barbearia = barbeariaInicial;
-  const barbeariaId = barbearia?.id;
-  const [servicos, setServicos] = useState(servicosIniciais);
-  const [carregandoServicos, setCarregandoServicos] = useState(true);
+  const servicos = servicosIniciais;
+  const barbeiros = barbeirosIniciais;
   const [servicosVisiveis, setServicosVisiveis] = useState(false);
-  const [barbeiros, setBarbeiros] = useState<BarbeiroPublico[]>([]);
-  const [carregandoBarbeiros, setCarregandoBarbeiros] = useState(true);
-  const [erroBarbeiros, setErroBarbeiros] = useState("");
-  const [erro, setErro] = useState(erroInicial);
+  const erro = erroInicial;
+  const erroServicos = erroServicosInicial;
+  const erroBarbeiros = erroBarbeirosInicial;
   const [modalAgendamentoAberto, setModalAgendamentoAberto] =
     useState(false);
   const [servicoInicialId, setServicoInicialId] =
     useState<number | null>(null);
   const [barbeiroInicialId, setBarbeiroInicialId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!barbeariaId) return;
-    let cancelado = false;
-
-    async function carregarDadosPublicos() {
-      setCarregandoServicos(true);
-      setErro("");
-      setServicos([]);
-      setCarregandoBarbeiros(true);
-      const supabase = createClient();
-      const [resultadoServicos, resultadoBarbeiros] = await Promise.all([
-        supabase
-          .from("servicos")
-          .select("id, nome, descricao, preco, duracao, ativo")
-          .eq("barbearia_id", barbeariaId)
-          .eq("ativo", true)
-          .is("excluido_em", null)
-          .order("nome", { ascending: true }),
-        supabase
-          .from("barbeiros")
-          .select("id, nome, horario_abertura, horario_fechamento, dia_folga")
-          .eq("barbearia_id", barbeariaId)
-          .eq("ativo", true)
-          .order("nome", { ascending: true }),
-      ]);
-
-      if (cancelado) return;
-      if (resultadoServicos.error) {
-        console.error("Erro ao carregar serviços:", resultadoServicos.error.message);
-        setErro("Não foi possível carregar os serviços.");
-      } else {
-        setServicos((resultadoServicos.data ?? []) as Servico[]);
-      }
-      if (resultadoBarbeiros.error) {
-        console.error("Erro ao carregar barbeiros:", resultadoBarbeiros.error.message);
-        setErroBarbeiros("Não foi possível carregar a equipe agora.");
-      } else {
-        setBarbeiros((resultadoBarbeiros.data ?? []) as BarbeiroPublico[]);
-      }
-      setCarregandoServicos(false);
-      setCarregandoBarbeiros(false);
-    }
-
-    carregarDadosPublicos();
-    return () => {
-      cancelado = true;
-    };
-  }, [barbeariaId]);
 
   function formatarPreco(preco: number) {
     return Number(preco).toLocaleString("pt-BR", {
@@ -212,13 +167,18 @@ export default function PaginaPublicaBarbearia({
 
       <section className="mx-auto max-w-6xl px-4 pb-12 pt-8 sm:px-6 sm:pb-16 sm:pt-12 md:pt-16">
         <div className="public-barbershop-hero relative isolate overflow-hidden border border-white/10 bg-gradient-to-br from-[#1a1d23] via-[#12161c] to-[#0b0f14] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.28)] sm:p-8 md:p-10">
-          {barbearia.capa_url && <img src={barbearia.capa_url} alt="" className="absolute inset-0 -z-20 h-full w-full object-cover opacity-20" />}
+          {barbearia.capa_url && <Image src={barbearia.capa_url} alt="" fill sizes="100vw" quality={60} className="absolute inset-0 -z-20 h-full w-full object-cover opacity-20" />}
           <div className="absolute inset-0 -z-10 bg-gradient-to-r from-[#0b0f14]/95 via-[#0b0f14]/80 to-[#0b0f14]/45" />
           <div className="relative flex flex-col items-start gap-6 sm:flex-row sm:gap-8">
             {barbearia.logo_url ? (
-              <img
+              <Image
                 src={barbearia.logo_url}
                 alt={`Logo da ${barbearia.nome}`}
+                width={112}
+                height={112}
+                sizes="112px"
+                quality={70}
+                fetchPriority="high"
                 className="h-24 w-24 shrink-0 rounded-2xl border border-white/15 bg-[#0b0f14] object-cover shadow-xl sm:h-28 sm:w-28"
               />
             ) : (
@@ -342,15 +302,9 @@ export default function PaginaPublicaBarbearia({
           </div>
 
           {servicosVisiveis && <div id="lista-servicos-publica" className="scroll-mt-24">
-          {carregandoServicos ? (
-            <div className="grid animate-pulse gap-4 md:grid-cols-2" aria-label="Carregando serviços">
-              {[0, 1].map((item) => (
-                <div key={item} className="h-52 rounded-2xl border border-white/10 bg-[#11151B]" />
-              ))}
-            </div>
-          ) : erro ? (
+          {erroServicos ? (
             <p className="rounded-xl border border-red-500/30 bg-red-500/10 p-5 text-red-300">
-              {erro}
+              {erroServicos}
             </p>
           ) : servicos.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-white/15 p-8 text-center">
@@ -424,11 +378,7 @@ export default function PaginaPublicaBarbearia({
             <p className="mt-2 text-zinc-400">Escolha seu profissional durante o agendamento.</p>
           </div>
 
-          {carregandoBarbeiros ? (
-            <div className="grid animate-pulse gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label="Carregando barbeiros">
-              {[0, 1].map((item) => <div key={item} className="h-28 rounded-2xl border border-white/10 bg-[#11151B]" />)}
-            </div>
-          ) : erroBarbeiros ? (
+          {erroBarbeiros ? (
             <p role="status" className="rounded-xl border border-white/10 bg-[#11151B] p-4 text-sm text-zinc-400">{erroBarbeiros}</p>
           ) : barbeiros.length === 0 ? (
             <p className="rounded-xl border border-dashed border-white/15 p-5 text-sm text-zinc-400">Nenhum barbeiro está disponível para agendamento no momento.</p>
