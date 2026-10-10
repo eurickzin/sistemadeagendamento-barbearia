@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useState } from "react";
+import { Suspense, use, useState } from "react";
 import Icon from "@/components/ui/Icon";
 import Image from "next/image";
 
@@ -43,42 +43,32 @@ export interface BarbeiroPublico {
   dia_folga: number;
 }
 
+export interface DadosAgendamentoPublicos {
+  servicos: Servico[];
+  erroServicos: { code: string; message: string } | null;
+  barbeiros: BarbeiroPublico[];
+  erroBarbeiros: { code: string; message: string } | null;
+}
+
 const DIAS_SEMANA = ["domingo", "segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado"];
 
 export default function PaginaPublicaBarbearia({
   barbeariaInicial,
-  servicosIniciais,
-  barbeirosIniciais,
-  erroServicosInicial = "",
-  erroBarbeirosInicial = "",
+  dadosPublicosPromise,
   erroInicial = "",
 }: {
   barbeariaInicial: Barbearia | null;
-  servicosIniciais: Servico[];
-  barbeirosIniciais: BarbeiroPublico[];
-  erroServicosInicial?: string;
-  erroBarbeirosInicial?: string;
+  dadosPublicosPromise: Promise<DadosAgendamentoPublicos>;
   erroInicial?: string;
 }) {
   const barbearia = barbeariaInicial;
-  const servicos = servicosIniciais;
-  const barbeiros = barbeirosIniciais;
   const [servicosVisiveis, setServicosVisiveis] = useState(false);
   const erro = erroInicial;
-  const erroServicos = erroServicosInicial;
-  const erroBarbeiros = erroBarbeirosInicial;
   const [modalAgendamentoAberto, setModalAgendamentoAberto] =
     useState(false);
   const [servicoInicialId, setServicoInicialId] =
     useState<number | null>(null);
   const [barbeiroInicialId, setBarbeiroInicialId] = useState<string | null>(null);
-
-  function formatarPreco(preco: number) {
-    return Number(preco).toLocaleString("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    });
-  }
 
   function formatarTelefone(telefone: string) {
     const digitos = telefone.replace(/\D/g, "");
@@ -301,74 +291,16 @@ export default function PaginaPublicaBarbearia({
             </button>
           </div>
 
-          {servicosVisiveis && <div id="lista-servicos-publica" className="scroll-mt-24">
-          {erroServicos ? (
-            <p className="rounded-xl border border-red-500/30 bg-red-500/10 p-5 text-red-300">
-              {erroServicos}
-            </p>
-          ) : servicos.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-white/15 p-8 text-center">
-              <p className="text-lg font-semibold">
-                Nenhum serviço disponível no momento
-              </p>
-              <p className="mt-2 text-sm text-zinc-400">
-                Volte em breve para conferir as novidades.
-              </p>
-            </div>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2">
-              {servicos.map((servico) => (
-                <article
-                  key={servico.id}
-                  className="rounded-2xl border border-white/10 bg-[#11151B] p-5 transition hover:border-[#C9A227]/50"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <h3 className="text-lg font-bold">
-                        {servico.nome}
-                      </h3>
-
-                      <p className="mt-2 text-sm leading-6 text-zinc-400">
-                        {servico.descricao ||
-                          "Um serviço feito para você."}
-                      </p>
-                    </div>
-
-                    <span className="shrink-0 text-[#C9A227]"><Icon name="scissors" /></span>
-                  </div>
-
-                  <div className="mt-6 flex items-end justify-between border-t border-white/10 pt-4">
-                    <div>
-                      <p className="text-xs text-zinc-500">
-                        Duração
-                      </p>
-                      <p className="mt-1 text-sm text-zinc-300">
-                        {servico.duracao} minutos
-                      </p>
-                    </div>
-
-                    <div className="text-right">
-                      <p className="text-xs text-zinc-500">
-                        Preço
-                      </p>
-                      <p className="mt-1 text-xl font-bold text-[#C9A227]">
-                        {formatarPreco(servico.preco)}
-                      </p>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => abrirAgendamento(servico.id)}
-                    className="mt-5 w-full rounded-lg border border-[#C9A227]/50 px-4 py-2.5 font-semibold text-[#C9A227] transition hover:bg-[#C9A227] hover:text-[#0B0F14]"
-                  >
-                    Agendar este serviço
-                  </button>
-                </article>
-              ))}
+          {servicosVisiveis && (
+            <div id="lista-servicos-publica" className="scroll-mt-24">
+              <Suspense fallback={<div className="h-32 animate-pulse rounded-2xl border border-white/10 bg-[#11151B]" aria-label="Carregando serviços" />}>
+                <ListaServicosPublicos
+                  dadosPromise={dadosPublicosPromise}
+                  onAgendar={(servicoId) => abrirAgendamento(servicoId)}
+                />
+              </Suspense>
             </div>
           )}
-          </div>}
         </div>
 
         <section className="mt-12" aria-labelledby="titulo-barbeiros-disponiveis">
@@ -378,27 +310,12 @@ export default function PaginaPublicaBarbearia({
             <p className="mt-2 text-zinc-400">Escolha seu profissional durante o agendamento.</p>
           </div>
 
-          {erroBarbeiros ? (
-            <p role="status" className="rounded-xl border border-white/10 bg-[#11151B] p-4 text-sm text-zinc-400">{erroBarbeiros}</p>
-          ) : barbeiros.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-white/15 p-5 text-sm text-zinc-400">Nenhum barbeiro está disponível para agendamento no momento.</p>
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {barbeiros.map((barbeiro) => (
-                <button key={barbeiro.id} type="button" onClick={() => abrirAgendamento(null, barbeiro.id)} aria-label={`Agendar primeiro com ${barbeiro.nome}`} className="group flex w-full items-center gap-4 rounded-2xl border border-white/10 bg-[#11151B] p-5 text-left transition hover:-translate-y-0.5 hover:border-[#C9A227]/60 hover:bg-[#151a21] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E0BB35]">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-[#C9A227]/30 bg-[#C9A227]/10 text-[#E0BB35]">
-                    <Icon name="user" className="h-6 w-6" />
-                  </div>
-                  <div className="min-w-0">
-                    <h3 className="truncate font-bold text-white transition group-hover:text-[#E0BB35]">{barbeiro.nome}</h3>
-                    <p className="mt-1 text-sm text-zinc-400">{barbeiro.horario_abertura.slice(0, 5)}–{barbeiro.horario_fechamento.slice(0, 5)}</p>
-                    <p className="mt-1 text-xs text-zinc-500">Folga: {DIAS_SEMANA[barbeiro.dia_folga] ?? "não informada"}</p>
-                  </div>
-                  <span className="ml-auto h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-400" aria-label="Disponível para agendamentos" title="Disponível para agendamentos" />
-                </button>
-              ))}
-            </div>
-          )}
+          <Suspense fallback={<div className="h-24 animate-pulse rounded-2xl border border-white/10 bg-[#11151B]" aria-label="Carregando equipe" />}>
+            <ListaBarbeirosPublicos
+              dadosPromise={dadosPublicosPromise}
+              onAgendar={(barbeiroId) => abrirAgendamento(null, barbeiroId)}
+            />
+          </Suspense>
         </section>
 
         <div className="mt-12 rounded-2xl border border-[#C9A227]/20 bg-[#C9A227]/5 p-6 text-center">
@@ -437,5 +354,125 @@ export default function PaginaPublicaBarbearia({
         barbeiroInicialId={barbeiroInicialId}
       />}
     </main>
+  );
+}
+
+function ListaServicosPublicos({
+  dadosPromise,
+  onAgendar,
+}: {
+  dadosPromise: Promise<DadosAgendamentoPublicos>;
+  onAgendar: (servicoId: number) => void;
+}) {
+  const { servicos, erroServicos } = use(dadosPromise);
+
+  if (erroServicos) {
+    return (
+      <p className="rounded-xl border border-red-500/30 bg-red-500/10 p-5 text-red-300">
+        Não foi possível carregar os serviços.
+      </p>
+    );
+  }
+
+  if (servicos.length === 0) {
+    return (
+      <div className="rounded-2xl border border-dashed border-white/15 p-8 text-center">
+        <p className="text-lg font-semibold">Nenhum serviço disponível no momento</p>
+        <p className="mt-2 text-sm text-zinc-400">Volte em breve para conferir as novidades.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-4 md:grid-cols-2">
+      {servicos.map((servico) => (
+        <article key={servico.id} className="rounded-2xl border border-white/10 bg-[#11151B] p-5 transition hover:border-[#C9A227]/50">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h3 className="text-lg font-bold">{servico.nome}</h3>
+              <p className="mt-2 text-sm leading-6 text-zinc-400">
+                {servico.descricao || "Um serviço feito para você."}
+              </p>
+            </div>
+            <span className="shrink-0 text-[#C9A227]"><Icon name="scissors" /></span>
+          </div>
+
+          <div className="mt-6 flex items-end justify-between border-t border-white/10 pt-4">
+            <div>
+              <p className="text-xs text-zinc-500">Duração</p>
+              <p className="mt-1 text-sm text-zinc-300">{servico.duracao} minutos</p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-zinc-500">Preço</p>
+              <p className="mt-1 text-xl font-bold text-[#C9A227]">
+                {Number(servico.preco).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => onAgendar(servico.id)}
+            className="mt-5 w-full rounded-lg border border-[#C9A227]/50 px-4 py-2.5 font-semibold text-[#C9A227] transition hover:bg-[#C9A227] hover:text-[#0B0F14]"
+          >
+            Agendar este serviço
+          </button>
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function ListaBarbeirosPublicos({
+  dadosPromise,
+  onAgendar,
+}: {
+  dadosPromise: Promise<DadosAgendamentoPublicos>;
+  onAgendar: (barbeiroId: string) => void;
+}) {
+  const { barbeiros, erroBarbeiros } = use(dadosPromise);
+
+  if (erroBarbeiros) {
+    return (
+      <p role="status" className="rounded-xl border border-white/10 bg-[#11151B] p-4 text-sm text-zinc-400">
+        Não foi possível carregar a equipe agora.
+      </p>
+    );
+  }
+
+  if (barbeiros.length === 0) {
+    return (
+      <p className="rounded-xl border border-dashed border-white/15 p-5 text-sm text-zinc-400">
+        Nenhum barbeiro está disponível para agendamento no momento.
+      </p>
+    );
+  }
+
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {barbeiros.map((barbeiro) => (
+        <button
+          key={barbeiro.id}
+          type="button"
+          onClick={() => onAgendar(barbeiro.id)}
+          aria-label={`Agendar primeiro com ${barbeiro.nome}`}
+          className="group flex w-full items-center gap-4 rounded-2xl border border-white/10 bg-[#11151B] p-5 text-left transition hover:-translate-y-0.5 hover:border-[#C9A227]/60 hover:bg-[#151a21] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E0BB35]"
+        >
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-[#C9A227]/30 bg-[#C9A227]/10 text-[#E0BB35]">
+            <Icon name="user" className="h-6 w-6" />
+          </div>
+          <div className="min-w-0">
+            <h3 className="truncate font-bold text-white transition group-hover:text-[#E0BB35]">{barbeiro.nome}</h3>
+            <p className="mt-1 text-sm text-zinc-400">
+              {barbeiro.horario_abertura.slice(0, 5)}–{barbeiro.horario_fechamento.slice(0, 5)}
+            </p>
+            <p className="mt-1 text-xs text-zinc-500">
+              Folga: {DIAS_SEMANA[barbeiro.dia_folga] ?? "não informada"}
+            </p>
+          </div>
+          <span className="ml-auto h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-400" aria-label="Disponível para agendamentos" title="Disponível para agendamentos" />
+        </button>
+      ))}
+    </div>
   );
 }

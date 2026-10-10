@@ -1,7 +1,6 @@
 import PaginaPublicaBarbearia, {
   type Barbearia,
-  type BarbeiroPublico,
-  type Servico,
+  type DadosAgendamentoPublicos,
 } from "./BarbeariaPublicaClient";
 import {
   carregarBarbeariaPublica,
@@ -20,8 +19,12 @@ export default async function PaginaBarbearia({
       <PaginaPublicaBarbearia
         key={slug}
         barbeariaInicial={null}
-        servicosIniciais={[]}
-        barbeirosIniciais={[]}
+        dadosPublicosPromise={Promise.resolve({
+          servicos: [],
+          erroServicos: null,
+          barbeiros: [],
+          erroBarbeiros: null,
+        }) satisfies Promise<DadosAgendamentoPublicos>}
         erroInicial="Não foi possível carregar a barbearia."
       />
     );
@@ -32,26 +35,24 @@ export default async function PaginaBarbearia({
       <PaginaPublicaBarbearia
         key={slug}
         barbeariaInicial={null}
-        servicosIniciais={[]}
-        barbeirosIniciais={[]}
+        dadosPublicosPromise={Promise.resolve({
+          servicos: [],
+          erroServicos: null,
+          barbeiros: [],
+          erroBarbeiros: null,
+        }) satisfies Promise<DadosAgendamentoPublicos>}
         erroInicial="Esta barbearia não existe ou está indisponível."
       />
     );
   }
 
-  const dadosPublicos = await carregarServicosEBarbeirosPublicos(barbearia.id);
-
-  if (dadosPublicos.erroServicos) console.error("Erro ao carregar serviços públicos:", dadosPublicos.erroServicos.message);
-  if (dadosPublicos.erroBarbeiros) console.error("Erro ao carregar barbeiros públicos:", dadosPublicos.erroBarbeiros.message);
+  const dadosPublicosPromise = carregarServicosEBarbeirosPublicos(barbearia.id);
 
   return (
     <PaginaPublicaBarbearia
       key={slug}
       barbeariaInicial={barbearia as Barbearia}
-      servicosIniciais={dadosPublicos.servicos as Servico[]}
-      barbeirosIniciais={dadosPublicos.barbeiros as BarbeiroPublico[]}
-      erroServicosInicial={dadosPublicos.erroServicos ? "Não foi possível carregar os serviços." : ""}
-      erroBarbeirosInicial={dadosPublicos.erroBarbeiros ? "Não foi possível carregar a equipe agora." : ""}
+      dadosPublicosPromise={dadosPublicosPromise as Promise<DadosAgendamentoPublicos>}
     />
   );
 }
