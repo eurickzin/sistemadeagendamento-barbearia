@@ -325,13 +325,13 @@ export default function ServicosPage() {
   }
 
   return (
-    <div className="mx-auto min-w-0 max-w-5xl space-y-6 sm:space-y-8">
+    <div className="services-page mx-auto min-w-0 max-w-5xl space-y-5 sm:space-y-7">
       <div>
-        <p className="text-sm font-semibold uppercase tracking-widest text-[#C9A227]">
+        <p className="text-xs font-semibold uppercase tracking-widest text-[#C9A227] sm:text-sm">
           Gestão da barbearia
         </p>
-        <h2 className="mt-2 text-2xl font-black sm:text-3xl">Meus serviços</h2>
-        <p className="mt-2 text-sm text-zinc-400">
+        <h2 className="mt-1 text-xl font-black sm:mt-2 sm:text-3xl">Meus serviços</h2>
+        <p className="mt-1 text-xs text-zinc-400 sm:mt-2 sm:text-sm">
           Cadastre os serviços que seus clientes poderão agendar.
         </p>
       </div>
@@ -356,10 +356,10 @@ export default function ServicosPage() {
 
       <form
         onSubmit={salvarServico}
-        className="space-y-5 border border-white/10 bg-[#090D12] p-4 sm:p-7"
+        className="space-y-4 rounded-2xl border border-white/10 bg-[#090D12] p-3.5 sm:space-y-5 sm:p-5"
       >
         <div className="flex items-center justify-between gap-3">
-          <h3 className="text-lg font-bold">
+          <h3 className="text-base font-bold sm:text-lg">
             {editandoId !== null ? "Editar serviço" : "Cadastrar serviço"}
           </h3>
 
@@ -374,8 +374,8 @@ export default function ServicosPage() {
           )}
         </div>
 
-        <div className="grid gap-5 sm:grid-cols-2">
-          <label className="space-y-2 text-sm sm:col-span-2">
+        <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
+          <label className="space-y-1.5 text-xs sm:col-span-2 sm:text-sm">
             <span className="text-zinc-300">Nome do serviço *</span>
             <input
               required
@@ -383,23 +383,23 @@ export default function ServicosPage() {
               value={nome}
               onChange={(e) => setNome(e.target.value)}
               placeholder="Ex.: Corte masculino"
-              className="w-full rounded-xl border border-white/10 bg-[#0B0F14] px-4 py-3 text-white outline-none focus:border-[#C9A227]"
+              className="w-full rounded-xl border border-white/10 bg-[#0B0F14] px-3.5 py-2.5 text-sm text-white outline-none focus:border-[#C9A227]"
             />
           </label>
 
-          <label className="space-y-2 text-sm sm:col-span-2">
+          <label className="space-y-1.5 text-xs sm:col-span-2 sm:text-sm">
             <span className="text-zinc-300">Descrição</span>
             <textarea
-              rows={3}
+              rows={2}
               maxLength={500}
               value={descricao}
               onChange={(e) => setDescricao(e.target.value)}
               placeholder="Descreva o serviço (opcional)"
-              className="w-full resize-y rounded-xl border border-white/10 bg-[#0B0F14] px-4 py-3 text-white outline-none focus:border-[#C9A227]"
+              className="w-full resize-y rounded-xl border border-white/10 bg-[#0B0F14] px-3.5 py-2.5 text-sm text-white outline-none focus:border-[#C9A227]"
             />
           </label>
 
-          <label className="space-y-2 text-sm">
+          <label className="space-y-1.5 text-xs sm:text-sm">
             <span className="text-zinc-300">Preço (R$) *</span>
             <input
               required
@@ -409,11 +409,11 @@ export default function ServicosPage() {
               value={preco}
               onChange={(e) => setPreco(e.target.value)}
               placeholder="35,00"
-              className="w-full rounded-xl border border-white/10 bg-[#0B0F14] px-4 py-3 text-white outline-none focus:border-[#C9A227]"
+              className="w-full rounded-xl border border-white/10 bg-[#0B0F14] px-3.5 py-2.5 text-sm text-white outline-none focus:border-[#C9A227]"
             />
           </label>
 
-          <label className="space-y-2 text-sm">
+          <label className="space-y-1.5 text-xs sm:text-sm">
             <span className="text-zinc-300">Duração (minutos) *</span>
             <input
               required
@@ -423,7 +423,7 @@ export default function ServicosPage() {
               value={duracao}
               onChange={(e) => setDuracao(e.target.value)}
               placeholder="40"
-              className="w-full rounded-xl border border-white/10 bg-[#0B0F14] px-4 py-3 text-white outline-none focus:border-[#C9A227]"
+              className="w-full rounded-xl border border-white/10 bg-[#0B0F14] px-3.5 py-2.5 text-sm text-white outline-none focus:border-[#C9A227]"
             />
           </label>
         </div>
@@ -431,7 +431,7 @@ export default function ServicosPage() {
         <button
           type="submit"
           disabled={salvando || !barbeariaId}
-          className="w-full rounded-xl bg-[#C9A227] px-5 py-3 font-bold text-[#0B0F14] transition hover:bg-[#E0BB35] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+          className="min-h-10 w-full rounded-xl bg-[#C9A227] px-4 py-2.5 text-sm font-bold text-[#0B0F14] transition hover:bg-[#E0BB35] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
         >
           {salvando
             ? "Salvando..."
@@ -441,10 +441,10 @@ export default function ServicosPage() {
         </button>
       </form>
 
-      <section className="space-y-4">
+      <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-xl font-bold">Serviços cadastrados</h3>
-          <span className="text-sm text-zinc-500">
+          <h3 className="text-base font-bold sm:text-lg">Serviços cadastrados</h3>
+          <span className="text-xs text-zinc-500 sm:text-sm">
             {servicos.length} {servicos.length === 1 ? "serviço" : "serviços"}
           </span>
         </div>
@@ -457,16 +457,16 @@ export default function ServicosPage() {
             </p>
           </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-3 md:grid-cols-2">
             {servicos.map((servico) => (
               <article
                 key={servico.id}
-                className="rounded-2xl border border-white/10 bg-[#090D12] p-5"
+                className="rounded-2xl border border-white/10 bg-[#090D12] p-3.5 transition-shadow hover:shadow-lg hover:shadow-black/10 sm:p-4"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <h4 className="break-words font-bold">{servico.nome}</h4>
-                    <p className="mt-2 text-2xl font-black text-[#C9A227]">
+                    <h4 className="break-words text-sm font-bold sm:text-base">{servico.nome}</h4>
+                    <p className="mt-1 text-xl font-black text-[#C9A227] sm:text-2xl">
                       {Number(servico.preco).toLocaleString("pt-BR", {
                         style: "currency",
                         currency: "BRL",
@@ -474,7 +474,7 @@ export default function ServicosPage() {
                     </p>
                   </div>
                   <span
-                    className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${
+                    className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold sm:text-xs ${
                       servico.ativo
                         ? "bg-emerald-500/10 text-emerald-400"
                         : "bg-zinc-700/40 text-zinc-400"
@@ -485,20 +485,20 @@ export default function ServicosPage() {
                 </div>
 
                 {servico.descricao && (
-                  <p className="mt-3 whitespace-pre-wrap break-words text-sm text-zinc-400">
+                  <p className="mt-2 line-clamp-2 whitespace-pre-wrap break-words text-xs text-zinc-400 sm:text-sm">
                     {servico.descricao}
                   </p>
                 )}
 
-                <p className="mt-3 text-sm text-zinc-400">
+                <p className="mt-2 text-xs text-zinc-400 sm:text-sm">
                   Duração: {servico.duracao} minutos
                 </p>
 
-                <div className="mt-5 flex flex-wrap gap-3 border-t border-white/10 pt-4">
+                <div className="mt-3 flex flex-wrap gap-2 border-t border-white/10 pt-3">
                   <button
                     type="button"
                     onClick={() => editarServico(servico)}
-                    className="rounded-lg border border-white/15 px-4 py-2 text-sm font-semibold hover:border-[#C9A227] hover:text-[#C9A227]"
+                    className="min-h-9 rounded-lg border border-white/15 px-3 py-1.5 text-xs font-semibold transition hover:border-[#C9A227] hover:text-[#C9A227]"
                   >
                     Editar
                   </button>
@@ -506,7 +506,7 @@ export default function ServicosPage() {
                   <button
                     type="button"
                     onClick={() => alternarAtivo(servico)}
-                    className={`rounded-lg px-4 py-2 text-sm font-semibold ${
+                    className={`min-h-9 rounded-lg px-3 py-1.5 text-xs font-semibold ${
                       servico.ativo
                         ? "border border-red-500/30 text-red-300 hover:bg-red-500/10"
                         : "border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10"
@@ -518,7 +518,7 @@ export default function ServicosPage() {
                   <button
                     type="button"
                     onClick={() => abrirConfirmacaoExclusao(servico)}
-                    className="rounded-lg border border-red-500/30 px-4 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-500/10 hover:text-red-200"
+                    className="min-h-9 rounded-lg border border-red-500/30 px-3 py-1.5 text-xs font-semibold text-red-300 transition hover:bg-red-500/10 hover:text-red-200"
                   >
                     Excluir
                   </button>
@@ -529,7 +529,7 @@ export default function ServicosPage() {
         )}
       </section>
 
-      <section className="rounded-2xl border border-white/10 bg-[#10151C] p-5 sm:p-6">
+      <section className="rounded-2xl border border-white/10 bg-[#10151C] p-3.5 sm:p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <button type="button" onClick={() => setLixeiraAberta((aberta) => !aberta)} className="flex items-center gap-2 text-left text-lg font-bold text-white">

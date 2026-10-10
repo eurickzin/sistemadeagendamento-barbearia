@@ -6,10 +6,12 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Icon from "@/components/ui/Icon";
+import ThemeToggle from "@/components/ui/ThemeToggle";
 
 interface Barbearia {
   id: string;
   nome: string | null;
+  logo_url: string | null;
 }
 
 interface Notificacao {
@@ -50,7 +52,7 @@ export default function DashboardLayout({
 
       const { data, error } = await supabase
         .from("barbearias")
-        .select("id, nome")
+        .select("id, nome, logo_url")
         .eq("proprietario_id", user.id)
         .maybeSingle();
 
@@ -180,31 +182,11 @@ export default function DashboardLayout({
     setTotalNaoLidas(0);
   }
 
-  async function sair() {
-    await supabase.auth.signOut();
-    router.replace("/painel/login");
-  }
-
   const estaNaAgenda = pathname === "/painel/agenda";
+  const estaNosClientes = pathname === "/painel/clientes";
   const estaNasConfiguracoes = pathname === "/painel/configuracoes";
   const estaNosServicos = pathname === "/painel/servicos";
   const estaNoDashboard = pathname === "/painel";
-
-  const tituloPagina = estaNosServicos
-    ? "Meus serviços"
-    : estaNaAgenda
-      ? "Agenda"
-      : estaNasConfiguracoes
-        ? "Configurações"
-        : <>Olá, barbeiro <Icon name="wave" className="inline h-4 w-4 align-[-2px]" /></>;
-
-  const secaoAtual = estaNosServicos
-    ? "Serviços"
-    : estaNaAgenda
-      ? "Agenda"
-      : estaNasConfiguracoes
-        ? "Configurações"
-        : "Dashboard";
 
   if (carregando) {
     return (
@@ -277,14 +259,13 @@ export default function DashboardLayout({
                 Agendamentos
               </button>
 
-              <button
-                type="button"
-                disabled
-                className="flex w-full cursor-not-allowed items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium text-zinc-600"
+              <Link
+                href="/painel/clientes"
+                className={classeLink(estaNosClientes)}
               >
                 <Icon name="user" className="h-5 w-5" />
                 Clientes
-              </button>
+              </Link>
 
               <Link
                 href="/painel/servicos"
@@ -328,37 +309,31 @@ export default function DashboardLayout({
             </div>
           </nav>
 
-          {/* SAIR */}
-          <div className="border-t border-white/10 p-3">
-            <button
-              onClick={sair}
-              className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-zinc-500 transition hover:bg-red-500/10 hover:text-red-400"
-            >
-              <Icon name="logout" className="h-5 w-5" />
-              Sair
-            </button>
-          </div>
         </aside>
 
         {/* CONTEÚDO */}
         <div className="min-w-0 flex-1">
           {/* HEADER */}
           <header className="sticky top-0 z-20 border-b border-white/10 bg-[#0B0F14]/90 backdrop-blur-sm sm:backdrop-blur-xl">
-            <div className="flex min-h-16 items-center justify-between gap-3 px-4 py-2 sm:h-20 sm:px-6 lg:px-10">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#C9A227]">
-                  {secaoAtual}
-                </p>
-
-                <h1 className="mt-1 text-lg font-bold sm:text-xl">{tituloPagina}</h1>
+            <div className="relative flex min-h-14 items-center justify-between gap-2 px-3 py-1.5 sm:h-20 sm:gap-3 sm:px-6 sm:py-2 lg:px-10">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-white/5 sm:h-11 sm:w-11">
+                {barbearia?.logo_url ? (
+                  <img
+                    src={barbearia.logo_url}
+                    alt={`Logo da ${barbearia.nome || "barbearia"}`}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <Icon name="scissors" className="h-5 w-5 text-[#C9A227]" />
+                )}
               </div>
 
-              <div className="flex shrink-0 items-center gap-3 sm:gap-5">
-                <div className="hidden text-right sm:block">
-                  <p className="text-sm font-semibold text-white">
-                    {barbearia?.nome || "Na Régua+"}
-                  </p>
+              <h1 className="absolute left-1/2 max-w-[40%] -translate-x-1/2 truncate text-center text-base font-bold sm:max-w-[45%] sm:text-xl">
+                  {barbearia?.nome?.trim() || "Na Régua+"}
+              </h1>
 
+              <div className="flex shrink-0 items-center gap-2 sm:gap-5">
+                <div className="hidden text-right sm:block">
                   <p className="text-xs text-zinc-500">
                     {new Date().toLocaleDateString("pt-BR", {
                       weekday: "long",
@@ -369,6 +344,8 @@ export default function DashboardLayout({
                   </p>
                 </div>
 
+                <ThemeToggle variant="inline" />
+
                 <div className="relative">
                   <button
                     type="button"
@@ -376,7 +353,7 @@ export default function DashboardLayout({
                     aria-expanded={notificacoesAbertas}
                     aria-controls="painel-notificacoes"
                     onClick={() => setNotificacoesAbertas((abertas) => !abertas)}
-                    className="relative flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 transition hover:bg-white/10"
+                    className="relative flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 transition hover:bg-white/10 sm:h-10 sm:w-10"
                   >
                     <Icon name="bell" className="h-5 w-5" />
                     {totalNaoLidas > 0 && (
@@ -453,8 +430,8 @@ export default function DashboardLayout({
           </header>
 
           {/* MENU MOBILE */}
-          <nav aria-label="Navegação do painel" className="mobile-nav border-b border-white/10 px-4 py-2 lg:hidden">
-            <div className="flex gap-2 overflow-x-auto">
+          <nav aria-label="Navegação do painel" className="mobile-nav border-b border-white/10 px-3 py-1 lg:hidden">
+            <div className="flex gap-1.5 overflow-x-auto">
               <Link
                 href="/painel"
                 className={classeLinkMobile(estaNoDashboard)}
@@ -469,6 +446,14 @@ export default function DashboardLayout({
                 aria-current={estaNaAgenda ? "page" : undefined}
               >
                 Agenda
+              </Link>
+
+              <Link
+                href="/painel/clientes"
+                className={classeLinkMobile(estaNosClientes)}
+                aria-current={estaNosClientes ? "page" : undefined}
+              >
+                Clientes
               </Link>
 
               <Link
@@ -487,18 +472,11 @@ export default function DashboardLayout({
                 Configurações
               </Link>
 
-              <button
-                type="button"
-                onClick={sair}
-                className="whitespace-nowrap border border-red-500/20 px-3 py-2.5 text-sm font-medium text-red-400"
-              >
-                Sair
-              </button>
             </div>
           </nav>
 
           {/* PÁGINA */}
-          <div className="min-w-0 px-4 py-6 sm:px-6 sm:py-8 lg:px-10 lg:py-10">
+          <div className="min-w-0 px-3 py-4 sm:px-6 sm:py-8 lg:px-10 lg:py-10">
             {children}
           </div>
         </div>

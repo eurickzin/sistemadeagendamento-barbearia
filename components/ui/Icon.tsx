@@ -1,5 +1,6 @@
 type IconName =
   | "wave"
+  | "wink"
   | "calendar"
   | "scissors"
   | "mail"
@@ -44,6 +45,14 @@ export default function Icon({
         <>
           <path d="M8.5 11V5.8a1.5 1.5 0 0 1 3 0v4.1-5a1.5 1.5 0 0 1 3 0v5.3-4a1.5 1.5 0 0 1 3 0v5.2-2.1a1.5 1.5 0 0 1 3 0v5.2c0 4-2.7 6.5-6.4 6.5h-2.3a6 6 0 0 1-4.7-2.3L4 14.5a1.7 1.7 0 0 1 2.5-2.3L8.5 14" />
           <path d="M3.5 5.5 2 4m4-.5L6 2m-4 7H.5" />
+        </>
+      )}
+      {name === "wink" && (
+        <>
+          <circle cx="12" cy="12" r="9" />
+          <path d="M7.5 10.5c.5.6 1.2.6 1.7 0" />
+          <circle cx="15.5" cy="10.5" r=".8" fill="currentColor" stroke="none" />
+          <path d="M8.5 14c.9 1.3 2.1 2 3.5 2s2.6-.7 3.5-2" />
         </>
       )}
       {name === "calendar" && (

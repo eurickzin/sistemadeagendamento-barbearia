@@ -735,25 +735,25 @@ export default function AgendaPage() {
   // =========================================================
 
   return (
-    <div className="agenda-page min-w-0 space-y-6 sm:space-y-8">
+    <div className="agenda-page min-w-0 space-y-4 sm:space-y-8">
 
       {/* =====================================================
           HEADER
       ===================================================== */}
 
-      <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+      <div className="flex items-center justify-between gap-3 md:items-end">
 
         <div>
 
-          <p className="mb-2 text-sm text-zinc-500">
+          <p className="mb-1 text-xs text-zinc-500 sm:mb-2 sm:text-sm">
             Agenda
           </p>
 
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+          <h1 className="text-xl font-semibold tracking-tight sm:text-3xl">
             Sua agenda
           </h1>
 
-          <p className="mt-2 text-sm text-zinc-400">
+          <p className="mt-1 hidden text-sm text-zinc-400 sm:block">
             Acompanhe todos os seus agendamentos.
           </p>
 
@@ -762,13 +762,12 @@ export default function AgendaPage() {
         <button
           onClick={carregarAgenda}
           disabled={carregando}
-          className="flex w-fit items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-2.5 text-sm text-zinc-300 transition hover:border-zinc-700 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
+          aria-label="Atualizar agenda"
+          className="flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900 text-sm text-zinc-300 transition hover:border-zinc-700 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50 sm:h-auto sm:w-auto sm:px-4 sm:py-2.5"
         >
-          <span>↻</span>
+          <span aria-hidden="true">↻</span>
 
-          {carregando
-            ? "Atualizando..."
-            : "Atualizar"}
+          <span className="hidden sm:inline">{carregando ? "Atualizando..." : "Atualizar"}</span>
         </button>
 
       </div>
@@ -777,7 +776,7 @@ export default function AgendaPage() {
           BARBEARIA
       ===================================================== */}
 
-      <div className="flex flex-col gap-4 rounded-2xl border border-zinc-800 bg-[#10151C] p-5 md:flex-row md:items-center md:justify-between">
+      <div className="hidden flex-col gap-4 rounded-2xl border border-zinc-800 bg-[#10151C] p-5 md:flex md:flex-row md:items-center md:justify-between">
 
         <div className="flex items-center gap-4">
 
@@ -818,7 +817,7 @@ export default function AgendaPage() {
           NAVEGAÇÃO DE DATA
       ===================================================== */}
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-center justify-between gap-2">
 
         <div className="flex items-center gap-2">
 
@@ -826,7 +825,8 @@ export default function AgendaPage() {
             onClick={() =>
               mudarDia(-1)
             }
-            className="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-300 transition hover:border-zinc-700 hover:bg-zinc-800"
+            aria-label="Dia anterior"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-300 transition hover:border-zinc-700 hover:bg-zinc-800"
           >
             ←
           </button>
@@ -835,7 +835,7 @@ export default function AgendaPage() {
             onClick={
               voltarParaHoje
             }
-            className="rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-2.5 text-sm text-zinc-300 transition hover:border-zinc-700 hover:bg-zinc-800"
+            className="rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-2.5 text-sm text-zinc-300 transition hover:border-zinc-700 hover:bg-zinc-800"
           >
             Hoje
           </button>
@@ -844,18 +844,16 @@ export default function AgendaPage() {
             onClick={() =>
               mudarDia(1)
             }
-            className="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-300 transition hover:border-zinc-700 hover:bg-zinc-800"
+            aria-label="Próximo dia"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-300 transition hover:border-zinc-700 hover:bg-zinc-800"
           >
             →
           </button>
 
         </div>
 
-        <div className="border border-zinc-800 bg-zinc-900 px-3 py-2.5 text-xs text-zinc-400 sm:px-4 sm:text-sm">
-          Data selecionada:{" "}
-          {formatarDataCurta(
-            dataSelecionada
-          )}
+        <div className="min-w-0 flex-1 text-right text-sm font-medium capitalize text-white sm:text-base">
+          {formatarDataAgenda(dataSelecionada)}
         </div>
 
       </div>
@@ -864,7 +862,7 @@ export default function AgendaPage() {
           RESUMO
       ===================================================== */}
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="hidden grid-cols-2 gap-4 lg:grid">
 
         {/* TOTAL */}
 
@@ -928,7 +926,7 @@ export default function AgendaPage() {
           FILTROS
       ===================================================== */}
 
-      <div className="flex gap-2 overflow-x-auto border-b border-zinc-800 pb-3">
+      <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:border-b sm:border-zinc-800 sm:pb-3">
 
         {[
           ["todos", "Todos"],
@@ -946,7 +944,7 @@ export default function AgendaPage() {
                   valor as Filtro
                 )
               }
-              className={`whitespace-nowrap rounded-lg px-4 py-2 text-sm transition ${
+              className={`min-h-10 whitespace-nowrap rounded-full px-3 py-2 text-xs transition sm:rounded-lg sm:px-4 sm:text-sm ${
                 filtro === valor
                   ? "bg-[#C9A227] text-black"
                   : "text-zinc-400 hover:bg-zinc-900 hover:text-white"
@@ -986,15 +984,15 @@ export default function AgendaPage() {
 
       <div>
 
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-3 flex items-center justify-between sm:mb-4">
 
           <div>
 
-            <h2 className="text-lg font-semibold">
+            <h2 className="text-base font-semibold sm:text-lg">
               {obterTituloFiltro()}
             </h2>
 
-            <p className="mt-1 text-sm text-zinc-500">
+            <p className="mt-0.5 text-xs text-zinc-500 sm:mt-1 sm:text-sm">
 
               {agendamentosFiltrados.length}{" "}
 
@@ -1063,7 +1061,7 @@ export default function AgendaPage() {
           agendamentosFiltrados.length >
             0 && (
 
-            <div className="space-y-4">
+            <div className="space-y-2.5 sm:space-y-4">
 
               {agendamentosFiltrados.map(
                 (agendamento) => {
@@ -1083,40 +1081,38 @@ export default function AgendaPage() {
                       key={
                         agendamento.id
                       }
-                      className="rounded-2xl border border-zinc-800 bg-[#10151C] p-5 transition hover:border-zinc-700"
+                      className="rounded-2xl border border-zinc-800 bg-[#10151C] p-3.5 transition hover:border-zinc-700 sm:p-5"
                     >
 
-                      <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                      <div className="flex flex-col gap-3 sm:gap-5 lg:flex-row lg:items-center lg:justify-between">
 
                         {/* =================================================
                             DATA + HORÁRIO + CLIENTE
                         ================================================= */}
 
-                        <div className="flex items-center gap-4">
+                        <div className="flex min-w-0 items-center gap-3 sm:gap-4">
 
                           {/* HORÁRIO */}
 
-                          <div className="flex h-16 w-20 flex-col items-center justify-center rounded-xl bg-zinc-900">
+                          <div className="flex h-14 w-[4.25rem] shrink-0 flex-col items-center justify-center rounded-xl bg-zinc-900 sm:h-16 sm:w-20">
 
-                            <span className="text-xl font-semibold text-white">
+                            <span className="text-lg font-semibold text-white sm:text-xl">
                               {formatarHorario(
                                 agendamento.horario
                               )}
                             </span>
 
-                            <span className="text-[11px] text-zinc-500">
-                              horário
-                            </span>
+                            <span className="hidden text-[11px] text-zinc-500 sm:inline">horário</span>
 
                           </div>
 
                           {/* CLIENTE */}
 
-                          <div>
+                          <div className="min-w-0">
 
                             {/* DATA */}
 
-                            <p className="mb-1 text-xs font-medium capitalize text-[#C9A227]">
+                            <p className="mb-1 text-[11px] font-medium capitalize text-[#C9A227] sm:text-xs">
                               {formatarDataAgenda(
                                 agendamento.data
                               )}
@@ -1136,17 +1132,29 @@ export default function AgendaPage() {
 
                             {/* NOME */}
 
-                            <h3 className="mt-2 text-base font-medium text-white">
+                            <h3 className="mt-1 truncate text-sm font-semibold text-white sm:mt-2 sm:text-base">
                               {agendamento.cliente?.nome ??
                                 "Cliente"}
                             </h3>
 
                             {/* SERVIÇO */}
 
-                            <p className="mt-1 text-sm text-zinc-500">
-                              {agendamento.servico?.nome ??
-                                "Serviço não informado"}
+                            <p className="mt-0.5 truncate text-xs text-zinc-400 sm:mt-1 sm:text-sm sm:text-zinc-500">
+                              {agendamento.servico?.nome ?? "Serviço não informado"}
+                              {agendamento.servico?.preco != null && (
+                                <span className="text-zinc-500"> · {formatarPreco(agendamento.servico.preco)}</span>
+                              )}
                             </p>
+
+                            {agendamento.cliente?.telefone && (
+                              <button
+                                onClick={() => abrirWhatsApp(agendamento.cliente?.telefone ?? null)}
+                                className="mt-2 inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-2.5 text-xs font-medium text-emerald-300 sm:hidden"
+                              >
+                                <Icon name="whatsapp" className="h-4 w-4" />
+                                WhatsApp
+                              </button>
+                            )}
 
                           </div>
 
@@ -1156,7 +1164,7 @@ export default function AgendaPage() {
                             INFORMAÇÕES
                         ================================================= */}
 
-                        <div className="grid grid-cols-2 gap-5 sm:grid-cols-4 lg:min-w-[500px]">
+                        <div className="hidden grid-cols-2 gap-5 sm:grid sm:grid-cols-4 lg:min-w-[500px]">
 
                           {/* SERVIÇO */}
 
@@ -1251,7 +1259,7 @@ export default function AgendaPage() {
                             AÇÕES
                         ================================================= */}
 
-                        <div className="flex gap-2 lg:flex-col">
+                        <div className="flex w-full gap-2 sm:w-auto lg:flex-col">
 
                           {/* CONCLUIR */}
 
@@ -1268,7 +1276,7 @@ export default function AgendaPage() {
                               disabled={
                                 estaProcessando
                               }
-                              className="rounded-xl bg-[#C9A227] px-4 py-2.5 text-sm font-medium text-black transition hover:bg-[#E0BB35] disabled:cursor-not-allowed disabled:opacity-50"
+                              className="min-h-10 flex-1 rounded-xl bg-[#C9A227] px-3 py-2 text-xs font-semibold text-black transition hover:bg-[#E0BB35] disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none sm:px-4 sm:py-2.5 sm:text-sm"
                             >
                               {estaProcessando
                                 ? "..."
@@ -1290,7 +1298,7 @@ export default function AgendaPage() {
                               disabled={
                                 estaProcessando
                               }
-                              className="rounded-xl border border-zinc-800 px-4 py-2.5 text-sm text-zinc-400 transition hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-50"
+                              className="min-h-10 flex-1 rounded-xl border border-zinc-800 px-3 py-2 text-xs text-zinc-400 transition hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none sm:px-4 sm:py-2.5 sm:text-sm"
                             >
                               Cancelar
                             </button>

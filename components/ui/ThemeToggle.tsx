@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 
 type Theme = "dark" | "light";
 
-export default function ThemeToggle() {
+export default function ThemeToggle({ variant = "floating" }: { variant?: "floating" | "inline" }) {
+  const pathname = usePathname();
   const [theme, setTheme] = useState<Theme>("dark");
 
   useEffect(() => {
@@ -12,6 +14,14 @@ export default function ThemeToggle() {
     const nextTheme: Theme = savedTheme === "light" ? "light" : "dark";
     setTheme(nextTheme);
     document.documentElement.dataset.theme = nextTheme;
+
+    function sincronizarTema(event: Event) {
+      const tema = (event as CustomEvent<Theme>).detail;
+      if (tema === "light" || tema === "dark") setTheme(tema);
+    }
+
+    window.addEventListener("na-regua-theme-change", sincronizarTema);
+    return () => window.removeEventListener("na-regua-theme-change", sincronizarTema);
   }, []);
 
   function toggleTheme() {
@@ -19,7 +29,11 @@ export default function ThemeToggle() {
     setTheme(nextTheme);
     document.documentElement.dataset.theme = nextTheme;
     window.localStorage.setItem("na-regua-theme", nextTheme);
+    window.dispatchEvent(new CustomEvent("na-regua-theme-change", { detail: nextTheme }));
   }
+
+  const paginasPainel = ["/painel", "/painel/agenda", "/painel/clientes", "/painel/servicos", "/painel/configuracoes"];
+  if (variant === "floating" && paginasPainel.includes(pathname)) return null;
 
   return (
     <button
@@ -27,7 +41,9 @@ export default function ThemeToggle() {
       onClick={toggleTheme}
       aria-label={`Ativar modo ${theme === "dark" ? "claro" : "escuro"}`}
       title={`Ativar modo ${theme === "dark" ? "claro" : "escuro"}`}
-      className="theme-toggle z-[10000] inline-flex min-h-11 items-center gap-2 border px-4 py-2 text-sm font-semibold shadow-lg transition-colors"
+      className={variant === "inline"
+        ? "theme-toggle-inline inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition hover:scale-105 focus-visible:outline-none sm:h-10 sm:w-10"
+        : "theme-toggle z-[10000] inline-flex h-10 w-10 items-center justify-center rounded-full border shadow-lg transition-all hover:scale-105 focus-visible:outline-none"}
     >
       <svg
         aria-hidden="true"
@@ -48,7 +64,6 @@ export default function ThemeToggle() {
           <path d="M20.8 13.2A8.5 8.5 0 0 1 10.8 3.2 8.5 8.5 0 1 0 20.8 13.2Z" />
         )}
       </svg>
-      <span>{theme === "dark" ? "Modo claro" : "Modo escuro"}</span>
     </button>
   );
 }

@@ -1,10 +1,11 @@
 
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Icon from "@/components/ui/Icon";
+import OAuthButtons from "@/components/auth/OAuthButtons";
 
 export default function LoginBarbeiroPage() {
   const router = useRouter();
@@ -13,6 +14,47 @@ export default function LoginBarbeiroPage() {
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(false);
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("oauth") !== "1") return;
+
+    let ativo = true;
+    async function validarSessaoOAuth() {
+      setCarregando(true);
+      const supabase = createClient();
+      const { data: { user }, error: usuarioError } = await supabase.auth.getUser();
+      if (!ativo) return;
+      if (usuarioError || !user) {
+        setCarregando(false);
+        setErro("Não foi possível concluir o login. Tente novamente.");
+        return;
+      }
+
+      const { data: barbearia, error: barbeariaError } = await supabase
+        .from("barbearias")
+        .select("ativa")
+        .eq("proprietario_id", user.id)
+        .maybeSingle();
+      if (!ativo) return;
+      if (barbeariaError) {
+        setCarregando(false);
+        setErro("Não foi possível verificar sua barbearia.");
+      } else if (!barbearia) {
+        router.replace("/painel/cadastrar-barbearia");
+      } else if (!barbearia.ativa) {
+        await supabase.auth.signOut();
+        if (!ativo) return;
+        setCarregando(false);
+        setErro("Sua barbearia está desativada no momento.");
+      } else {
+        router.replace("/painel");
+        router.refresh();
+      }
+    }
+
+    void validarSessaoOAuth();
+    return () => { ativo = false; };
+  }, [router]);
 
   async function handleLogin(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -151,7 +193,11 @@ export default function LoginBarbeiroPage() {
               </p>
             </div>
 
-            <form onSubmit={handleLogin} className="mt-8 space-y-5">
+            <div className="mt-8">
+              <OAuthButtons redirectPath="/painel/login?oauth=1" disabled={carregando} />
+            </div>
+
+            <form onSubmit={handleLogin} className="mt-6 space-y-5">
               <div>
                 <label
                   htmlFor="barbeiro-email"

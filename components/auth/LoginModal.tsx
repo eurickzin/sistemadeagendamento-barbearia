@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import OAuthButtons from "@/components/auth/OAuthButtons";
 
 interface LoginModalProps {
   aberto: boolean;
@@ -103,6 +104,10 @@ export default function LoginModal({
             <p className="mt-3 text-sm leading-6 text-zinc-400">
               Entre para acessar seus agendamentos.
             </p>
+          </div>
+
+          <div className="mb-5">
+            <OAuthButtons redirectPath="/minha-conta" disabled={carregando} />
           </div>
 
           <form onSubmit={handleLogin} className="space-y-5">

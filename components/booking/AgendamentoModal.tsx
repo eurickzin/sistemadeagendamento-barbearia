@@ -4,6 +4,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Icon from "@/components/ui/Icon";
+import OAuthButtons from "@/components/auth/OAuthButtons";
 
 interface Servico {
   id: number;
@@ -1065,6 +1066,8 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
                 </p>
               )}
             </div>
+
+            <OAuthButtons redirectPath={typeof window !== "undefined" ? window.location.pathname : "/"} disabled={carregandoLogin} />
 
             <div>
               <label
