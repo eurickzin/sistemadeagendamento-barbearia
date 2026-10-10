@@ -69,7 +69,8 @@ export default function DashboardLayout({
   }, [router, supabase]);
 
   useEffect(() => {
-    if (!barbearia?.id) return;
+    const barbeariaId = barbearia?.id;
+    if (!barbeariaId) return;
 
     let ativo = true;
 
@@ -78,19 +79,19 @@ export default function DashboardLayout({
         supabase
           .from("notificacoes_barbeiro")
           .select("id, titulo, mensagem, agendamento_id, lida_em, created_at")
-          .eq("barbearia_id", barbearia.id)
+          .eq("barbearia_id", barbeariaId)
           .order("created_at", { ascending: false })
           .limit(20),
         supabase
           .from("notificacoes_barbeiro")
           .select("id", { count: "exact", head: true })
-          .eq("barbearia_id", barbearia.id)
+          .eq("barbearia_id", barbeariaId)
           .is("lida_em", null),
       ]);
 
       if (!ativo) return;
-      if (lista.error || contagem.error) {
-        const erroBanco = lista.error ?? contagem.error;
+      const erroBanco = lista.error ?? contagem.error;
+      if (erroBanco) {
         console.error("Erro ao carregar notificações:", JSON.stringify({
           code: erroBanco.code,
           message: erroBanco.message,
@@ -117,14 +118,14 @@ export default function DashboardLayout({
     void carregarNotificacoes();
 
     const canal = supabase
-      .channel(`notificacoes-barbearia-${barbearia.id}`)
+      .channel(`notificacoes-barbearia-${barbeariaId}`)
       .on(
         "postgres_changes",
         {
           event: "INSERT",
           schema: "public",
           table: "notificacoes_barbeiro",
-          filter: `barbearia_id=eq.${barbearia.id}`,
+          filter: `barbearia_id=eq.${barbeariaId}`,
         },
         () => void carregarNotificacoes(),
       )
