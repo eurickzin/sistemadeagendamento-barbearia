@@ -13,7 +13,10 @@ type IconName =
   | "check"
   | "alert"
   | "edit"
-  | "search";
+  | "search"
+  | "instagram"
+  | "whatsapp"
+  | "mapPin";
 
 export default function Icon({
   name,
@@ -116,6 +119,25 @@ export default function Icon({
         <>
           <circle cx="10.8" cy="10.8" r="6.8" />
           <path d="m16 16 5 5" />
+        </>
+      )}
+      {name === "instagram" && (
+        <>
+          <rect x="3" y="3" width="18" height="18" rx="5" />
+          <circle cx="12" cy="12" r="4" />
+          <circle cx="18" cy="6" r="1" fill="currentColor" stroke="none" />
+        </>
+      )}
+      {name === "whatsapp" && (
+        <>
+          <path d="M20.3 11.7a8.3 8.3 0 0 1-12.2 7.4L4 20l.9-4A8.3 8.3 0 1 1 20.3 11.7Z" />
+          <path d="M9 8.2c.2-.4.4-.4.7-.4h.5c.2 0 .4.1.5.4l.7 1.6c.1.3.1.5-.1.7l-.5.6c-.2.2-.2.4 0 .6.5.9 1.2 1.6 2.1 2.1.2.1.4.1.6-.1l.7-.8c.2-.2.4-.2.7-.1l1.5.7c.3.1.4.3.4.5 0 .3-.2 1.1-.8 1.6-.5.5-1.3.7-2 .5-1.1-.3-2.4-.9-3.8-2.2-1.2-1.1-2-2.5-2.3-3.5-.3-.9.2-1.8.6-2.2.3-.3.5-.4.8-.4Z" />
+        </>
+      )}
+      {name === "mapPin" && (
+        <>
+          <path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z" />
+          <circle cx="12" cy="10" r="2.5" />
         </>
       )}
     </svg>

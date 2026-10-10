@@ -13,7 +13,11 @@ interface Agendamento {
   data: string;
   horario: string;
   status: string;
-  servico_id: number;
+  servico_id: number | null;
+  servico_nome: string | null;
+  servico_descricao: string | null;
+  servico_preco: number | null;
+  servico_duracao: number | null;
   servico: {
     nome: string;
     descricao: string | null;
@@ -99,6 +103,10 @@ export default function MinhaContaPage() {
         horario,
         status,
         servico_id,
+        servico_nome,
+        servico_descricao,
+        servico_preco,
+        servico_duracao,
         servico:servicos (
           nome,
           descricao,
@@ -117,7 +125,15 @@ export default function MinhaContaPage() {
 
       setAgendamentos([]);
     } else {
-      setAgendamentos((data as unknown as Agendamento[]) ?? []);
+      setAgendamentos(((data as unknown as Agendamento[]) ?? []).map((agendamento) => ({
+        ...agendamento,
+        servico: agendamento.servico ?? (agendamento.servico_nome ? {
+          nome: agendamento.servico_nome,
+          descricao: agendamento.servico_descricao,
+          preco: agendamento.servico_preco ?? 0,
+          duracao: agendamento.servico_duracao ?? 30,
+        } : null),
+      })));
     }
 
     setCarregando(false);
@@ -207,6 +223,10 @@ export default function MinhaContaPage() {
         horario,
         status,
         servico_id,
+        servico_nome,
+        servico_descricao,
+        servico_preco,
+        servico_duracao,
         servico:servicos (
           nome,
           descricao,
@@ -226,7 +246,15 @@ export default function MinhaContaPage() {
       return;
     }
 
-    setAgendamentos((data as unknown as Agendamento[]) ?? []);
+    setAgendamentos(((data as unknown as Agendamento[]) ?? []).map((agendamento) => ({
+      ...agendamento,
+      servico: agendamento.servico ?? (agendamento.servico_nome ? {
+        nome: agendamento.servico_nome,
+        descricao: agendamento.servico_descricao,
+        preco: agendamento.servico_preco ?? 0,
+        duracao: agendamento.servico_duracao ?? 30,
+      } : null),
+    })));
   }
 
   async function concluirAgendamento() {

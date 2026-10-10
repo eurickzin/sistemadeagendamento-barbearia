@@ -103,6 +103,413 @@
   color: #ffffff !important;
 }
 
+/* Paleta leve e consistente para a tela de configurações do barbeiro. */
+:root[data-theme="light"] .settings-page {
+  color: #27313d;
+}
+
+:root[data-theme="light"] .settings-page [class~="bg-[#10151C]"],
+:root[data-theme="light"] .settings-page [class~="bg-[#0B0F14]"],
+:root[data-theme="light"] .settings-page [class~="bg-[#0B0F14]/60"] {
+  background-color: #ffffff !important;
+}
+
+:root[data-theme="light"] .settings-page [class~="bg-zinc-900"],
+:root[data-theme="light"] .settings-page [class~="bg-zinc-900/50"] {
+  background-color: #f6f7f8 !important;
+}
+
+:root[data-theme="light"] .settings-page [class~="border-zinc-800"],
+:root[data-theme="light"] .settings-page [class~="border-zinc-700"] {
+  border-color: #e3e7eb !important;
+}
+
+:root[data-theme="light"] .settings-page [class~="text-white"],
+:root[data-theme="light"] .settings-page [class~="text-zinc-100"],
+:root[data-theme="light"] .settings-page [class~="text-zinc-200"] {
+  color: #27313d !important;
+}
+
+:root[data-theme="light"] .settings-page [class~="text-zinc-300"] {
+  color: #303a46 !important;
+}
+
+:root[data-theme="light"] .settings-page [class~="text-zinc-400"],
+:root[data-theme="light"] .settings-page [class~="text-zinc-500"] {
+  color: #414b57 !important;
+}
+
+:root[data-theme="light"] .settings-page [class~="text-zinc-600"] {
+  color: #56616e !important;
+}
+
+:root[data-theme="light"] .settings-page input:not([type="checkbox"]):not([type="file"]),
+:root[data-theme="light"] .settings-page textarea,
+:root[data-theme="light"] .settings-page select {
+  border-color: #d9dfe6 !important;
+  background-color: #f8f9fa !important;
+  color: #27313d !important;
+}
+
+:root[data-theme="light"] .settings-page input::placeholder,
+:root[data-theme="light"] .settings-page textarea::placeholder {
+  color: #687381 !important;
+}
+
+:root[data-theme="light"] .settings-page input:focus,
+:root[data-theme="light"] .settings-page textarea:focus,
+:root[data-theme="light"] .settings-page select:focus {
+  border-color: #c9a227 !important;
+  background-color: #ffffff !important;
+}
+
+:root[data-theme="light"] .settings-page [class~="hover:bg-zinc-800"]:hover {
+  background-color: #f1f3f5 !important;
+}
+
+:root[data-theme="light"] .settings-page [class~="hover:border-zinc-700"]:hover {
+  border-color: #cbd2da !important;
+}
+
+:root[data-theme="light"] .settings-page [class~="border-[#C9A227]"],
+:root[data-theme="light"] .settings-page [class~="border-[#C9A227]/40"] {
+  border-color: #b9c8d8 !important;
+}
+
+:root[data-theme="light"] .settings-page [class~="bg-[#C9A227]/10"] {
+  background-color: #eaf0f6 !important;
+}
+
+:root[data-theme="light"] .settings-page [class~="text-[#C9A227]"],
+:root[data-theme="light"] .settings-page [class~="text-[#E0BB35]"] {
+  color: #27445f !important;
+}
+
+:root[data-theme="light"] .settings-page [class~="bg-[#C9A227]"] {
+  background-color: #27445f !important;
+  color: #ffffff !important;
+}
+
+:root[data-theme="light"] .settings-page [class~="hover:bg-[#E0BB35]"]:hover {
+  background-color: #1f344a !important;
+}
+
+:root[data-theme="light"] .settings-page [class~="bg-red-500/10"] {
+  background-color: #fff1f0 !important;
+}
+
+:root[data-theme="light"] .settings-page [class~="bg-emerald-500/10"] {
+  background-color: #edf8f1 !important;
+}
+
+:root[data-theme="light"] .settings-page [class~="bg-amber-500/10"] {
+  background-color: #fff7e6 !important;
+}
+
+:root[data-theme="light"] .settings-page [class~="text-red-400"],
+:root[data-theme="light"] .settings-page [class~="text-red-300"] {
+  color: #a3332a !important;
+}
+
+:root[data-theme="light"] .settings-page [class~="text-emerald-400"],
+:root[data-theme="light"] .settings-page [class~="text-emerald-300"] {
+  color: #217044 !important;
+}
+
+:root[data-theme="light"] .settings-page [class~="text-amber-200"] {
+  color: #76520c !important;
+}
+
+/* A agenda usa a mesma paleta clara das configurações do barbeiro. */
+:root[data-theme="light"] .agenda-page {
+  color: #27313d;
+}
+
+:root[data-theme="light"] .agenda-page [class~="bg-[#10151C]"],
+:root[data-theme="light"] .agenda-page [class~="bg-[#0B0F14]"],
+:root[data-theme="light"] .agenda-page [class~="bg-zinc-900"] {
+  background-color: #ffffff !important;
+}
+
+:root[data-theme="light"] .agenda-page [class~="bg-zinc-900/50"] {
+  background-color: #f6f7f8 !important;
+}
+
+:root[data-theme="light"] .agenda-page [class~="bg-white/[0.03]"] {
+  background-color: #f6f7f8 !important;
+}
+
+:root[data-theme="light"] .agenda-page [class~="border-zinc-800"],
+:root[data-theme="light"] .agenda-page [class~="border-zinc-700"],
+:root[data-theme="light"] .agenda-page [class~="border-white/10"],
+:root[data-theme="light"] .agenda-page [class~="border-white/15"] {
+  border-color: #e3e7eb !important;
+}
+
+:root[data-theme="light"] .agenda-page [class~="text-white"],
+:root[data-theme="light"] .agenda-page [class~="text-zinc-100"],
+:root[data-theme="light"] .agenda-page [class~="text-zinc-200"] {
+  color: #27313d !important;
+}
+
+:root[data-theme="light"] .agenda-page [class~="text-zinc-300"] {
+  color: #303a46 !important;
+}
+
+:root[data-theme="light"] .agenda-page [class~="text-zinc-400"],
+:root[data-theme="light"] .agenda-page [class~="text-zinc-500"] {
+  color: #414b57 !important;
+}
+
+:root[data-theme="light"] .agenda-page [class~="text-zinc-600"] {
+  color: #56616e !important;
+}
+
+:root[data-theme="light"] .agenda-page [class~="hover:bg-zinc-800"]:hover,
+:root[data-theme="light"] .agenda-page [class~="hover:bg-zinc-900"]:hover,
+:root[data-theme="light"] .agenda-page [class~="hover:bg-white/5"]:hover {
+  background-color: #f1f3f5 !important;
+}
+
+:root[data-theme="light"] .agenda-page [class~="hover:border-zinc-700"]:hover {
+  border-color: #cbd2da !important;
+}
+
+:root[data-theme="light"] .agenda-page [class~="text-[#C9A227]"] {
+  color: #27445f !important;
+}
+
+:root[data-theme="light"] .agenda-page [class~="bg-[#C9A227]"] {
+  background-color: #27445f !important;
+  color: #ffffff !important;
+}
+
+:root[data-theme="light"] .agenda-page [class~="hover:bg-[#E0BB35]"]:hover {
+  background-color: #1f344a !important;
+}
+
+:root[data-theme="light"] .agenda-page [class~="bg-emerald-500/10"] {
+  background-color: #edf8f1 !important;
+}
+
+:root[data-theme="light"] .agenda-page [class~="text-emerald-400"] {
+  color: #217044 !important;
+}
+
+:root[data-theme="light"] .agenda-page [class~="bg-blue-500/10"] {
+  background-color: #eef4ff !important;
+}
+
+:root[data-theme="light"] .agenda-page [class~="text-blue-400"] {
+  color: #2856a6 !important;
+}
+
+:root[data-theme="light"] .agenda-page [class~="bg-yellow-500/10"] {
+  background-color: #eaf0f6 !important;
+}
+
+:root[data-theme="light"] .agenda-page [class~="text-yellow-400"] {
+  color: #27445f !important;
+}
+
+:root[data-theme="light"] .agenda-page [class~="bg-red-500/10"] {
+  background-color: #fff1f0 !important;
+}
+
+:root[data-theme="light"] .agenda-page [class~="text-red-400"],
+:root[data-theme="light"] .agenda-page [class~="text-red-400/80"],
+:root[data-theme="light"] .agenda-page [class~="text-red-300"] {
+  color: #a3332a !important;
+}
+
+:root[data-theme="light"] .agenda-page [class~="bg-red-500"] {
+  background-color: #bd382e !important;
+  color: #ffffff !important;
+}
+
+:root[data-theme="light"] .agenda-page [class~="hover:bg-red-400"]:hover {
+  background-color: #a92f27 !important;
+}
+
+:root[data-theme="light"] .public-barbershop-hero {
+  border-color: #dbe4ec !important;
+  background-image: none !important;
+  background-color: #ffffff !important;
+  box-shadow: 0 24px 70px rgb(39 68 95 / 9%) !important;
+}
+
+:root[data-theme="light"] .public-barbershop-hero [class~="bg-gradient-to-r"] {
+  background-image: linear-gradient(to right, rgb(255 255 255 / 96%), rgb(255 255 255 / 88%), rgb(255 255 255 / 72%)) !important;
+}
+
+:root[data-theme="light"] .public-barbershop-hero [class~="bg-black/20"] {
+  background-color: #f3f6f9 !important;
+}
+
+:root[data-theme="light"] .public-barbershop-hero [class~="text-white"],
+:root[data-theme="light"] .public-barbershop-hero [class~="text-zinc-100"] {
+  color: #27313d !important;
+}
+
+:root[data-theme="light"] .public-barbershop-hero [class~="text-zinc-300"] {
+  color: #475565 !important;
+}
+
+:root[data-theme="light"] .public-barbershop-hero [class~="text-zinc-400"] {
+  color: #526273 !important;
+}
+
+:root[data-theme="light"] .public-barbershop-hero [class~="text-zinc-500"] {
+  color: #65758a !important;
+}
+
+/* No modo claro, o dourado da marca vira um azul profundo com fundos azuis suaves. */
+:root[data-theme="light"] [class~="text-[#C9A227]"],
+:root[data-theme="light"] [class~="text-[#E0BB35]"],
+:root[data-theme="light"] [class~="hover:text-[#C9A227]"]:hover,
+:root[data-theme="light"] [class~="hover:text-[#E0BB35]"]:hover,
+:root[data-theme="light"] .group:hover [class~="group-hover:text-[#C9A227]"],
+:root[data-theme="light"] .group:hover [class~="group-hover:text-[#E0BB35]"] {
+  color: #27445f !important;
+}
+
+:root[data-theme="light"] [class~="bg-[#C9A227]"] {
+  background-color: #27445f !important;
+  color: #ffffff !important;
+}
+
+:root[data-theme="light"] [class~="bg-[#E0BB35]"] {
+  background-color: #27445f !important;
+  color: #ffffff !important;
+}
+
+:root[data-theme="light"] [class~="hover:bg-[#C9A227]"]:hover,
+:root[data-theme="light"] [class~="hover:bg-[#E0BB35]"]:hover {
+  background-color: #1f344a !important;
+  color: #ffffff !important;
+}
+
+:root[data-theme="light"] [class~="bg-[#C9A227]/5"],
+:root[data-theme="light"] [class~="bg-[#C9A227]/10"],
+:root[data-theme="light"] [class~="bg-[#C9A227]/[0.04]"],
+:root[data-theme="light"] [class~="bg-[#C9A227]/[0.08]"] {
+  background-color: #eaf0f6 !important;
+}
+
+:root[data-theme="light"] [class~="bg-[#C9A227]/15"] {
+  background-color: #e3ebf3 !important;
+}
+
+:root[data-theme="light"] [class~="bg-[#C9A227]/30"] {
+  background-color: #d7e2ee !important;
+}
+
+:root[data-theme="light"] [class~="hover:bg-[#C9A227]/5"]:hover,
+:root[data-theme="light"] [class~="hover:bg-[#C9A227]/10"]:hover,
+:root[data-theme="light"] [class~="hover:bg-[#C9A227]/15"]:hover {
+  background-color: #e3ebf3 !important;
+}
+
+:root[data-theme="light"] [class~="border-[#C9A227]"],
+:root[data-theme="light"] [class~="border-[#C9A227]/10"],
+:root[data-theme="light"] [class~="border-[#C9A227]/20"],
+:root[data-theme="light"] [class~="border-[#C9A227]/25"],
+:root[data-theme="light"] [class~="border-[#C9A227]/30"],
+:root[data-theme="light"] [class~="border-[#C9A227]/40"],
+:root[data-theme="light"] [class~="border-[#C9A227]/50"],
+:root[data-theme="light"] [class~="border-[#C9A227]/60"],
+:root[data-theme="light"] [class~="border-[#C9A227]/70"],
+:root[data-theme="light"] [class~="hover:border-[#C9A227]"]:hover,
+:root[data-theme="light"] [class~="hover:border-[#C9A227]/20"]:hover,
+:root[data-theme="light"] [class~="hover:border-[#C9A227]/30"]:hover,
+:root[data-theme="light"] [class~="hover:border-[#C9A227]/40"]:hover,
+:root[data-theme="light"] [class~="hover:border-[#C9A227]/50"]:hover,
+:root[data-theme="light"] [class~="hover:border-[#C9A227]/60"]:hover,
+:root[data-theme="light"] [class~="focus:border-[#C9A227]"]:focus,
+:root[data-theme="light"] [class~="focus-within:border-[#C9A227]"]:focus-within {
+  border-color: #b9c8d8 !important;
+}
+
+:root[data-theme="light"] [class~="border-t-[#C9A227]"] {
+  border-top-color: #27445f !important;
+}
+
+:root[data-theme="light"] [class~="accent-[#C9A227]"] {
+  accent-color: #27445f !important;
+}
+
+:root[data-theme="light"] [class~="from-[#C9A227]/10"] {
+  --tw-gradient-from: rgb(39 68 95 / 10%) !important;
+}
+
+:root[data-theme="light"] [class~="via-[#C9A227]/60"] {
+  --tw-gradient-via: rgb(39 68 95 / 60%) !important;
+}
+
+:root[data-theme="light"] [class~="via-[#E0BB35]"],
+:root[data-theme="light"] .group:hover [class~="group-hover:via-[#E0BB35]"] {
+  --tw-gradient-via: #27445f !important;
+}
+
+:root[data-theme="light"] [class~="decoration-[#C9A227]/40"] {
+  text-decoration-color: rgb(39 68 95 / 40%) !important;
+}
+
+:root[data-theme="light"] [class~="ring-[#C9A227]/10"],
+:root[data-theme="light"] [class~="ring-[#C9A227]/20"],
+:root[data-theme="light"] [class~="ring-[#C9A227]/30"],
+:root[data-theme="light"] [class~="focus:ring-[#C9A227]/20"]:focus,
+:root[data-theme="light"] [class~="focus:ring-[#C9A227]/30"]:focus {
+  --tw-ring-color: rgb(39 68 95 / 25%) !important;
+}
+
+:root[data-theme="light"] [class~="shadow-[#C9A227]/10"] {
+  --tw-shadow-color: rgb(39 68 95 / 10%) !important;
+}
+
+:root[data-theme="light"] [class~="shadow-[#C9A227]/20"] {
+  --tw-shadow-color: rgb(39 68 95 / 20%) !important;
+}
+
+:root[data-theme="light"] [class*="rgba(201,162,39"] {
+  box-shadow: 0 8px 24px rgb(39 68 95 / 14%) !important;
+}
+
+:root[data-theme="light"] [class~="text-yellow-400"] {
+  color: #27445f !important;
+}
+
+:root[data-theme="light"] [class~="bg-yellow-500/10"],
+:root[data-theme="light"] [class~="bg-yellow-500/[0.02]"] {
+  background-color: #eaf0f6 !important;
+}
+
+:root[data-theme="light"] [class~="border-yellow-500/10"],
+:root[data-theme="light"] [class~="border-yellow-500/20"] {
+  border-color: #cbd7e3 !important;
+}
+
+:root[data-theme="light"] :is(a, button, input, select, textarea):focus-visible {
+  outline-color: #27445f;
+}
+
+:root[data-theme="light"] .scrollbar-rk {
+  scrollbar-color: #27445f #eaf0f6;
+}
+
+:root[data-theme="light"] .scrollbar-rk::-webkit-scrollbar-track {
+  background: #eaf0f6;
+}
+
+:root[data-theme="light"] .scrollbar-rk::-webkit-scrollbar-thumb {
+  background: #27445f;
+  border-color: #eaf0f6;
+}
+
+:root[data-theme="light"] .scrollbar-rk::-webkit-scrollbar-thumb:hover {
+  background: #1f344a;
+}
+
 :root:not([data-theme="light"]) .theme-toggle {
   border-color: rgb(255 255 255 / 20%);
   background: #11151b;

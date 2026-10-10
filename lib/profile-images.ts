@@ -2,6 +2,20 @@ import { createClient } from "@/lib/supabase/client";
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
+export function getProfileImageStoragePath(publicUrl: string) {
+  try {
+    const url = new URL(publicUrl);
+    const prefix = "/storage/v1/object/public/profile-images/";
+    const pathStart = url.pathname.indexOf(prefix);
+    if (pathStart === -1) return null;
+
+    const encodedPath = url.pathname.slice(pathStart + prefix.length);
+    return encodedPath.split("/").map(decodeURIComponent).join("/");
+  } catch {
+    return null;
+  }
+}
+
 export async function uploadProfileImage(
   file: File,
   userId: string,

@@ -44,6 +44,14 @@ export default function CatalogoBarbearias({
       </header>
 
       <section className="mx-auto max-w-6xl px-4 pb-12 pt-10 sm:px-5 sm:pb-16 md:pt-20">
+        <Link
+          href="/"
+          className="mb-8 inline-flex min-h-12 items-center gap-3 rounded-xl bg-[#E5B932] px-5 py-3 text-sm font-extrabold text-[#0B0F14] shadow-[0_8px_26px_rgba(229,185,50,0.28)] ring-1 ring-white/20 transition hover:-translate-y-0.5 hover:bg-[#F2CA4E] hover:shadow-[0_12px_32px_rgba(229,185,50,0.38)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#E5B932]/40"
+        >
+          <span aria-hidden="true" className="text-xl leading-none">←</span>
+          Voltar para o início
+        </Link>
+
         <div className="max-w-3xl">
           <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#C9A227]">
             Encontre seu próximo corte

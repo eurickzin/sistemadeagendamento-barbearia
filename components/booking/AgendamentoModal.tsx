@@ -13,11 +13,21 @@ interface Servico {
   barbearia_id: string;
 }
 
+interface Barbeiro {
+  id: string;
+  nome: string;
+  horario_abertura: string;
+  horario_fechamento: string;
+  dia_folga: number;
+}
+
 interface Agendamento {
   id: number;
   horario: string;
-  servico_id: number;
+  servico_id: number | null;
+  servico_duracao: number | null;
   data: string;
+  barbeiro_id: string | null;
 }
 
 interface AgendamentoModalProps {
@@ -27,6 +37,7 @@ interface AgendamentoModalProps {
   barbeariaId?: string;
   barbeariaNome?: string;
   servicoInicialId?: number | null;
+  barbeiroInicialId?: string | null;
 }
 
 const supabase = createClient();
@@ -87,8 +98,11 @@ export default function AgendamentoModal({
   barbeariaId,
   barbeariaNome,
   servicoInicialId = null,
+  barbeiroInicialId = null,
 }: AgendamentoModalProps) {
   const [servicos, setServicos] = useState<Servico[]>([]);
+  const [barbeiros, setBarbeiros] = useState<Barbeiro[]>([]);
+  const [barbeiroSelecionadoId, setBarbeiroSelecionadoId] = useState<string | null>(null);
   const [servicoSelecionadoId, setServicoSelecionadoId] =
     useState<number | null>(null);
 
@@ -129,6 +143,12 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
   const servicoSelecionado = servicos.find(
     (servico) => servico.id === servicoSelecionadoId
   );
+  const barbeiroSelecionado = barbeiros.find(
+    (barbeiro) => barbeiro.id === barbeiroSelecionadoId,
+  );
+  const aberturaDisponivel = barbeiroSelecionado?.horario_abertura.slice(0, 5) ?? horarioAbertura;
+  const fechamentoDisponivel = barbeiroSelecionado?.horario_fechamento.slice(0, 5) ?? horarioFechamento;
+  const fluxoBarbeiroPrimeiro = Boolean(barbeiroInicialId);
 
   const anoCalendario = mesVisivel.getFullYear();
   const mesCalendario = mesVisivel.getMonth();
@@ -193,6 +213,8 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
       setSucesso(false);
       setMostrarLogin(false);
       setHorarioSelecionado("");
+      setBarbeiros([]);
+      setBarbeiroSelecionadoId(null);
       setDataSelecionada(dataLocal());
 
       const hojeAtual = new Date();
@@ -265,6 +287,29 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
       setHorarioAbertura(dadosBarbearia?.horario_abertura?.slice(0, 5) ?? "08:00");
       setHorarioFechamento(dadosBarbearia?.horario_fechamento?.slice(0, 5) ?? "21:00");
 
+      const { data: equipe, error: erroEquipe } = await supabase
+        .from("barbeiros")
+        .select("id, nome, horario_abertura, horario_fechamento, dia_folga")
+        .eq("barbearia_id", barbeariaId!)
+        .eq("ativo", true)
+        .order("nome", { ascending: true });
+
+      if (cancelado) return;
+
+      if (erroEquipe) {
+        // Mantém o fluxo legado até que a migração de barbeiros seja aplicada.
+        console.error("Não foi possível carregar a equipe:", erroEquipe);
+        setBarbeiros([]);
+        setBarbeiroSelecionadoId(null);
+      } else {
+        const equipeAtiva = (equipe ?? []) as Barbeiro[];
+        setBarbeiros(equipeAtiva);
+        const barbeiroInicialExiste = equipeAtiva.some((barbeiro) => barbeiro.id === barbeiroInicialId);
+        setBarbeiroSelecionadoId(
+          barbeiroInicialExiste ? barbeiroInicialId : equipeAtiva.length === 1 ? equipeAtiva[0].id : null,
+        );
+      }
+
       setCarregandoServicos(false);
     }
 
@@ -273,7 +318,7 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
     return () => {
       cancelado = true;
     };
-  }, [aberto, barbeariaId, servicoInicialId]);
+  }, [aberto, barbeariaId, servicoInicialId, barbeiroInicialId]);
 
   useEffect(() => {
     if (!aberto || !barbeariaId || !dataSelecionada) return;
@@ -284,12 +329,18 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
       setCarregandoHorarios(true);
       setErro("");
 
-      const { data, error } = await supabase
+      let consulta = supabase
         .from("agendamentos")
-        .select("id, horario, servico_id, data")
+        .select(barbeiroSelecionadoId
+          ? "id, horario, servico_id, servico_duracao, data, barbeiro_id"
+          : "id, horario, servico_id, servico_duracao, data")
         .eq("barbearia_id", barbeariaId!)
         .eq("data", dataSelecionada)
         .neq("status", "cancelado");
+      if (barbeiroSelecionadoId) {
+        consulta = consulta.or(`barbeiro_id.eq.${barbeiroSelecionadoId},barbeiro_id.is.null`);
+      }
+      const { data, error } = await consulta;
 
       if (cancelado) return;
 
@@ -300,7 +351,7 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
           "Não foi possível consultar os horários. Tente novamente."
         );
       } else {
-        setAgendamentos((data ?? []) as Agendamento[]);
+        setAgendamentos((data ?? []) as unknown as Agendamento[]);
       }
 
       setCarregandoHorarios(false);
@@ -311,7 +362,7 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
     return () => {
       cancelado = true;
     };
-  }, [aberto, barbeariaId, dataSelecionada]);
+  }, [aberto, barbeariaId, dataSelecionada, barbeiroSelecionadoId]);
 
   function selecionarServico(id: number) {
     setServicoSelecionadoId(id);
@@ -326,11 +377,10 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
   }
 
   function diaEstaDeFolga(): boolean {
-    if (!diaFolga || !dataSelecionada) return false;
+    if (!dataSelecionada) return false;
 
     const data = new Date(`${dataSelecionada}T12:00:00`);
     const diaSemana = data.getDay();
-    const folga = diaFolga.trim().toLowerCase();
 
     const diasSemana: Record<string, number> = {
       domingo: 0,
@@ -355,13 +405,17 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
       sab: 6,
     };
 
-    const numeroFolga = Number(folga);
+    const folgas = [diaFolga, barbeiroSelecionado?.dia_folga]
+      .filter((folga): folga is string | number => folga !== null && folga !== undefined)
+      .map((folga) => String(folga).trim().toLowerCase());
 
-    if (folga !== "" && Number.isInteger(numeroFolga)) {
-      return numeroFolga === diaSemana;
-    }
-
-    return diasSemana[folga] === diaSemana;
+    return folgas.some((folga) => {
+      const numeroFolga = Number(folga);
+      if (folga !== "" && Number.isInteger(numeroFolga)) {
+        return numeroFolga === diaSemana;
+      }
+      return diasSemana[folga] === diaSemana;
+    });
   }
 
   function horarioEstaDisponivel(horario: string): boolean {
@@ -381,16 +435,22 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
       if (inicioNovo <= minutosAgora) return false;
     }
 
-    if (fimNovo > minutosDoHorario(horarioFechamento)) return false;
+    if (fimNovo > minutosDoHorario(fechamentoDisponivel)) return false;
 
     return !agendamentos.some((agendamento) => {
+      if (
+        barbeiroSelecionadoId &&
+        agendamento.barbeiro_id &&
+        agendamento.barbeiro_id !== barbeiroSelecionadoId
+      ) return false;
+
       const inicioExistente = minutosDoHorario(agendamento.horario);
 
       const servicoExistente = servicos.find(
         (servico) => servico.id === agendamento.servico_id
       );
 
-      const duracaoExistente = servicoExistente?.duracao ?? 30;
+      const duracaoExistente = servicoExistente?.duracao ?? agendamento.servico_duracao ?? 30;
       const fimExistente = inicioExistente + duracaoExistente;
 
       return (
@@ -402,7 +462,7 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
 
   const horarios: string[] = [];
 
-  for (let minutos = minutosDoHorario(horarioAbertura); minutos < minutosDoHorario(horarioFechamento); minutos += 30) {
+  for (let minutos = minutosDoHorario(aberturaDisponivel); minutos < minutosDoHorario(fechamentoDisponivel); minutos += 30) {
     const horas = String(Math.floor(minutos / 60)).padStart(2, "0");
     const mins = String(minutos % 60).padStart(2, "0");
 
@@ -519,6 +579,11 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
       return;
     }
 
+    if (barbeiros.length > 1 && !barbeiroSelecionadoId) {
+      setErro("Selecione o barbeiro que fará o atendimento.");
+      return;
+    }
+
     if (!dataSelecionada || !horarioSelecionado) {
       setErro("Selecione a data e o horário.");
       return;
@@ -558,12 +623,18 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
       }
 
       // Consulta novamente os agendamentos antes de salvar.
-      const { data: conflitos, error: erroConflitos } = await supabase
+      let consultaConflitos = supabase
         .from("agendamentos")
-        .select("id, horario, servico_id, data")
+        .select(barbeiroSelecionadoId
+          ? "id, horario, servico_id, servico_duracao, data, barbeiro_id"
+          : "id, horario, servico_id, servico_duracao, data")
         .eq("barbearia_id", barbeariaId)
         .eq("data", dataSelecionada)
         .neq("status", "cancelado");
+      if (barbeiroSelecionadoId) {
+        consultaConflitos = consultaConflitos.or(`barbeiro_id.eq.${barbeiroSelecionadoId},barbeiro_id.is.null`);
+      }
+      const { data: conflitos, error: erroConflitos } = await consultaConflitos;
 
       if (erroConflitos) {
         throw new Error(
@@ -571,20 +642,26 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
         );
       }
 
-      const listaConflitos = (conflitos ?? []) as Agendamento[];
+      const listaConflitos = (conflitos ?? []) as unknown as Agendamento[];
       setAgendamentos(listaConflitos);
 
       const inicioNovo = minutosDoHorario(horarioSelecionado);
       const fimNovo = inicioNovo + servicoSelecionado.duracao;
 
       const existeConflito = listaConflitos.some((agendamento) => {
+        if (
+          barbeiroSelecionadoId &&
+          agendamento.barbeiro_id &&
+          agendamento.barbeiro_id !== barbeiroSelecionadoId
+        ) return false;
+
         const servicoExistente = servicos.find(
           (servico) => servico.id === agendamento.servico_id
         );
 
         const inicioExistente = minutosDoHorario(agendamento.horario);
         const fimExistente =
-          inicioExistente + (servicoExistente?.duracao ?? 30);
+          inicioExistente + (servicoExistente?.duracao ?? agendamento.servico_duracao ?? 30);
 
         return (
           inicioNovo < fimExistente &&
@@ -604,21 +681,47 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
           usuario_id: user.id,
           servico_id: servicoSelecionado.id,
           barbearia_id: barbeariaId,
+          ...(barbeiroSelecionadoId ? { barbeiro_id: barbeiroSelecionadoId } : {}),
           data: dataSelecionada,
           horario: horarioSelecionado,
           status: "confirmado",
         });
 
       if (erroInsercao) {
-        console.error(erroInsercao);
+        console.error("Erro ao inserir agendamento:", JSON.stringify({
+          code: erroInsercao.code,
+          message: erroInsercao.message,
+          details: erroInsercao.details,
+          hint: erroInsercao.hint,
+          barbeariaId,
+          barbeiroId: barbeiroSelecionadoId,
+          data: dataSelecionada,
+          horario: horarioSelecionado,
+        }));
 
         if (erroInsercao.code === "23505") {
-          setErro("Esse horário já foi reservado. Escolha outro.");
+          const nomeRestricao = erroInsercao.message.match(/constraint "([^"]+)"/i)?.[1];
+          if (
+            nomeRestricao &&
+            nomeRestricao !== "agendamentos_barbeiro_horario_unique" &&
+            nomeRestricao !== "agendamentos_sem_barbeiro_horario_unique"
+          ) {
+            setErro(`O banco bloqueou a reserva pela regra "${nomeRestricao}". Reexecute supabase/barbeiros.sql no Supabase para atualizar os horários por barbeiro.`);
+            setHorarioSelecionado("");
+            return;
+          }
+
+          setErro("Esse horário acabou de ser reservado para esse barbeiro. Escolha outro horário ou profissional.");
           setHorarioSelecionado("");
           return;
         }
 
-        throw new Error("Não foi possível confirmar o agendamento.");
+        if (erroInsercao.code === "23503" || erroInsercao.code === "23514") {
+          setErro("O barbeiro selecionado não está mais disponível. Atualize a página e tente novamente.");
+          return;
+        }
+
+        throw new Error("Não foi possível confirmar o agendamento. Tente novamente.");
       }
 
       setSucesso(true);
@@ -635,6 +738,47 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
       setSalvando(false);
     }
   }
+
+  const seletorBarbeiro = barbeiros.length > 0 ? (
+    <div className="mt-7">
+      <h3 className="mb-3 font-semibold">
+        <span className="mr-2 text-[#C9A227]">{fluxoBarbeiroPrimeiro ? "01." : "02."}</span>
+        {barbeiros.length === 1 ? "Profissional do atendimento" : "Escolha o barbeiro"}
+      </h3>
+
+      {barbeiros.length === 1 ? (
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-[#C9A227]/30 bg-[#C9A227]/5 p-4">
+          <div>
+            <p className="font-semibold text-white">{barbeiros[0].nome}</p>
+            <p className="mt-1 text-xs text-zinc-400">Esta barbearia tem um único profissional disponível.</p>
+          </div>
+          <Icon name="user" className="h-5 w-5 text-[#C9A227]" />
+        </div>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {barbeiros.map((barbeiro) => {
+            const selecionado = barbeiroSelecionadoId === barbeiro.id;
+            return (
+              <button
+                key={barbeiro.id}
+                type="button"
+                aria-pressed={selecionado}
+                onClick={() => {
+                  setBarbeiroSelecionadoId(barbeiro.id);
+                  setHorarioSelecionado("");
+                  setErro("");
+                }}
+                className={`flex min-h-14 items-center justify-between rounded-xl border p-4 text-left transition ${selecionado ? "border-[#C9A227] bg-[#C9A227]/10 text-[#E0BB35]" : "border-white/10 bg-[#11151B] text-zinc-300 hover:border-white/30"}`}
+              >
+                <span className="font-semibold">{barbeiro.nome}</span>
+                {selecionado && <Icon name="check" className="h-5 w-5" />}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  ) : null;
 
   if (!aberto) return null;
 
@@ -702,7 +846,7 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
                 : "Seu agendamento foi confirmado com sucesso."}
             </p>
 
-            <div className="mt-7 grid border border-white/10 bg-[#090D12] text-left sm:grid-cols-3">
+            <div className={`mt-7 grid border border-white/10 bg-[#090D12] text-left ${barbeiroSelecionado ? "sm:grid-cols-4" : "sm:grid-cols-3"}`}>
               <div className="border-b border-white/10 p-4 sm:border-b-0 sm:border-r">
                 <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500">Serviço</p>
                 <p className="mt-2 break-words font-semibold text-white">{servicoSelecionado?.nome ?? "Agendamento"}</p>
@@ -711,6 +855,12 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
                 <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500">Data</p>
                 <p className="mt-2 capitalize font-semibold text-white">{formatarData(dataSelecionada)}</p>
               </div>
+              {barbeiroSelecionado && (
+                <div className="border-b border-white/10 p-4 sm:border-b-0 sm:border-r">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500">Barbeiro</p>
+                  <p className="mt-2 font-semibold text-white">{barbeiroSelecionado.nome}</p>
+                </div>
+              )}
               <div className="p-4">
                 <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500">Horário</p>
                 <p className="mt-2 text-xl font-bold text-[#E0BB35]">{horarioSelecionado}</p>
@@ -1007,9 +1157,11 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
           </p>
         ) : (
           <>
+            {fluxoBarbeiroPrimeiro && seletorBarbeiro}
+
             <div>
               <h3 className="mb-3 font-semibold">
-                <span className="mr-2 text-[#C9A227]">01.</span>
+                <span className="mr-2 text-[#C9A227]">{fluxoBarbeiroPrimeiro ? "02." : "01."}</span>
                 Escolha o serviço
               </h3>
 
@@ -1048,9 +1200,11 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
               </div>
             </div>
 
+            {!fluxoBarbeiroPrimeiro && seletorBarbeiro}
+
             <div className="mt-7">
               <h3 className="mb-3 font-semibold">
-                <span className="mr-2 text-[#C9A227]">02.</span>
+                <span className="mr-2 text-[#C9A227]">{barbeiros.length > 0 ? "03." : "02."}</span>
                 Escolha a data
               </h3>
 
@@ -1139,18 +1293,22 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
 
             <div className="mt-7">
               <h3 className="mb-3 font-semibold">
-                <span className="mr-2 text-[#C9A227]">03.</span>
+                <span className="mr-2 text-[#C9A227]">{barbeiros.length > 0 ? "04." : "03."}</span>
                 Escolha o horário
               </h3>
 
               {diaEstaDeFolga() ? (
                 <p className="rounded-xl border border-white/10 bg-[#11151B] p-4 text-sm text-zinc-400">
-                  A barbearia não atende nesse dia. Escolha outra data.
+                  {barbeiroSelecionado && barbeiroSelecionado.dia_folga !== Number(diaFolga)
+                    ? `${barbeiroSelecionado.nome} não atende nesse dia. Escolha outra data.`
+                    : "A barbearia não atende nesse dia. Escolha outra data."}
                 </p>
               ) : carregandoHorarios ? (
                 <p className="py-3 text-sm text-zinc-400">
                   Consultando horários...
                 </p>
+              ) : barbeiros.length > 1 && !barbeiroSelecionado ? (
+                <p className="text-sm text-zinc-400">Escolha um barbeiro para consultar os horários disponíveis.</p>
               ) : !servicoSelecionado ? (
                 <p className="text-sm text-zinc-400">
                   Selecione um serviço primeiro.
@@ -1219,6 +1377,11 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
                     <p className="mt-1 text-sm capitalize text-zinc-400">
                       {formatarData(dataSelecionada)}
                     </p>
+                    {barbeiroSelecionado && (
+                      <p className="mt-1 text-sm text-zinc-400">
+                        Barbeiro: {barbeiroSelecionado.nome}
+                      </p>
+                    )}
                     <p className="mt-1 text-sm text-zinc-400">
                       Horário: {horarioSelecionado || "--:--"}
                     </p>
@@ -1249,6 +1412,7 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
               disabled={
                 salvando ||
                 carregandoHorarios ||
+                (barbeiros.length > 1 && !barbeiroSelecionadoId) ||
                 !servicoSelecionado ||
                 !horarioSelecionado ||
                 diaEstaDeFolga()

@@ -3,6 +3,7 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
+import Icon from "@/components/ui/Icon";
 
 interface Servico {
   id: number;
@@ -12,6 +13,7 @@ interface Servico {
   duracao: number;
   ativo: boolean;
   barbearia_id: string | null;
+  excluido_em: string | null;
 }
 
 const supabase = createClient();
@@ -19,6 +21,8 @@ const supabase = createClient();
 export default function ServicosPage() {
   const [barbeariaId, setBarbeariaId] = useState<string | null>(null);
   const [servicos, setServicos] = useState<Servico[]>([]);
+  const [servicosArquivados, setServicosArquivados] = useState<Servico[]>([]);
+  const [lixeiraAberta, setLixeiraAberta] = useState(false);
   const [nome, setNome] = useState("");
   const [descricao, setDescricao] = useState("");
   const [preco, setPreco] = useState("");
@@ -28,20 +32,37 @@ export default function ServicosPage() {
   const [salvando, setSalvando] = useState(false);
   const [mensagem, setMensagem] = useState("");
   const [erro, setErro] = useState("");
+  const [servicoParaExcluir, setServicoParaExcluir] = useState<Servico | null>(null);
+  const [confirmacaoExclusaoMarcada, setConfirmacaoExclusaoMarcada] = useState(false);
+  const [excluindoServico, setExcluindoServico] = useState(false);
+  const [erroExclusao, setErroExclusao] = useState("");
+  const [confirmarEsvaziarLixeira, setConfirmarEsvaziarLixeira] = useState(false);
+  const [esvaziandoLixeira, setEsvaziandoLixeira] = useState(false);
+  const [confirmacaoLixeiraMarcada, setConfirmacaoLixeiraMarcada] = useState(false);
 
   const carregarServicos = useCallback(async (id: string) => {
-    const { data, error } = await supabase
-      .from("servicos")
-      .select("id, nome, descricao, preco, duracao, ativo, barbearia_id")
-      .eq("barbearia_id", id)
-      .order("created_at", { ascending: false });
+    const [ativos, arquivados] = await Promise.all([
+      supabase
+        .from("servicos")
+        .select("id, nome, descricao, preco, duracao, ativo, barbearia_id, excluido_em")
+        .eq("barbearia_id", id)
+        .is("excluido_em", null)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("servicos")
+        .select("id, nome, descricao, preco, duracao, ativo, barbearia_id, excluido_em")
+        .eq("barbearia_id", id)
+        .not("excluido_em", "is", null)
+        .order("excluido_em", { ascending: false }),
+    ]);
 
-    if (error) {
+    if (ativos.error || arquivados.error) {
       setErro("Não foi possível carregar os serviços.");
       return;
     }
 
-    setServicos((data ?? []) as Servico[]);
+    setServicos((ativos.data ?? []) as Servico[]);
+    setServicosArquivados((arquivados.data ?? []) as Servico[]);
   }, []);
 
   useEffect(() => {
@@ -191,6 +212,108 @@ export default function ServicosPage() {
         ? "Serviço desativado. Ele não deverá aparecer para os clientes."
         : "Serviço ativado com sucesso!"
     );
+  }
+
+  function abrirConfirmacaoExclusao(servico: Servico) {
+    setServicoParaExcluir(servico);
+    setConfirmacaoExclusaoMarcada(false);
+    setErroExclusao("");
+  }
+
+  async function excluirServico() {
+    if (!barbeariaId || !servicoParaExcluir || !confirmacaoExclusaoMarcada) return;
+
+    setExcluindoServico(true);
+    setErroExclusao("");
+
+    const { data: servicoExcluido, error } = await supabase
+      .from("servicos")
+      .update({ ativo: false, excluido_em: new Date().toISOString() })
+      .eq("id", servicoParaExcluir.id)
+      .eq("barbearia_id", barbeariaId)
+      .select("id")
+      .maybeSingle();
+
+    if (error || !servicoExcluido) {
+      console.error("Erro ao arquivar serviço:", JSON.stringify({
+        code: error?.code,
+        message: error?.message,
+        details: error?.details,
+        hint: error?.hint,
+      }));
+      setErroExclusao(
+        error
+          ? "Não foi possível remover o serviço. Confira as permissões do banco e tente novamente."
+          : "O banco não confirmou a remoção. Execute supabase/servicos-permissoes.sql no SQL Editor do Supabase e tente novamente."
+      );
+      setExcluindoServico(false);
+      return;
+    }
+
+    const nomeExcluido = servicoParaExcluir.nome;
+    setServicos((atuais) => atuais.filter((servico) => servico.id !== servicoParaExcluir.id));
+    if (editandoId === servicoParaExcluir.id) limparFormulario();
+    setServicoParaExcluir(null);
+    setConfirmacaoExclusaoMarcada(false);
+    setMensagem(`Serviço "${nomeExcluido}" removido dos serviços disponíveis. Os agendamentos anteriores foram preservados.`);
+    setExcluindoServico(false);
+  }
+
+  function fecharConfirmacaoExclusao() {
+    if (excluindoServico) return;
+    setServicoParaExcluir(null);
+    setConfirmacaoExclusaoMarcada(false);
+    setErroExclusao("");
+  }
+
+  async function restaurarServico(servico: Servico) {
+    if (!barbeariaId) return;
+    const { data, error } = await supabase
+      .from("servicos")
+      .update({ excluido_em: null, ativo: false })
+      .eq("id", servico.id)
+      .eq("barbearia_id", barbeariaId)
+      .select("id")
+      .maybeSingle();
+
+    if (error || !data) {
+      setErro("Não foi possível restaurar o serviço. Confira as permissões do Supabase.");
+      return;
+    }
+    await carregarServicos(barbeariaId);
+    setMensagem(`Serviço "${servico.nome}" restaurado como inativo. Ative-o quando quiser disponibilizá-lo.`);
+  }
+
+  async function esvaziarLixeira() {
+    if (!barbeariaId || !confirmacaoLixeiraMarcada || !servicosArquivados.length) return;
+    setEsvaziandoLixeira(true);
+    setErro("");
+    const { data, error } = await supabase
+      .from("servicos")
+      .delete()
+      .eq("barbearia_id", barbeariaId)
+      .not("excluido_em", "is", null)
+      .select("id");
+
+    if (error) {
+      console.error("Erro ao esvaziar lixeira:", error.message, error.code);
+      setErro("Não foi possível esvaziar a lixeira. Execute a versão atualizada de supabase/servicos-permissoes.sql no Supabase.");
+      setEsvaziandoLixeira(false);
+      return;
+    }
+
+    if ((data?.length ?? 0) !== servicosArquivados.length) {
+      await carregarServicos(barbeariaId);
+      setErro("Nem todos os serviços foram removidos. Confira as permissões e tente novamente.");
+      setEsvaziandoLixeira(false);
+      return;
+    }
+
+    setServicosArquivados([]);
+    setConfirmarEsvaziarLixeira(false);
+    setConfirmacaoLixeiraMarcada(false);
+    setMensagem(`${data?.length ?? 0} serviço(s) removido(s) permanentemente. Os dados dos agendamentos anteriores foram preservados.`);
+    setEsvaziandoLixeira(false);
   }
 
   if (carregando) {
@@ -391,12 +514,149 @@ export default function ServicosPage() {
                   >
                     {servico.ativo ? "Desativar" : "Ativar"}
                   </button>
+
+                  <button
+                    type="button"
+                    onClick={() => abrirConfirmacaoExclusao(servico)}
+                    className="rounded-lg border border-red-500/30 px-4 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-500/10 hover:text-red-200"
+                  >
+                    Excluir
+                  </button>
                 </div>
               </article>
             ))}
           </div>
         )}
       </section>
+
+      <section className="rounded-2xl border border-white/10 bg-[#10151C] p-5 sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <button type="button" onClick={() => setLixeiraAberta((aberta) => !aberta)} className="flex items-center gap-2 text-left text-lg font-bold text-white">
+              <Icon name="alert" className="h-5 w-5 text-zinc-400" />
+              Lixeira
+              <span className="rounded-full bg-white/10 px-2.5 py-1 text-xs text-zinc-300">{servicosArquivados.length}</span>
+              <span className="text-sm text-zinc-500">{lixeiraAberta ? "Recolher" : "Abrir"}</span>
+            </button>
+            <p className="mt-1 text-sm text-zinc-400">Serviços removidos ficam aqui até serem restaurados ou apagados permanentemente.</p>
+          </div>
+          {servicosArquivados.length > 0 && <button type="button" onClick={() => { setConfirmacaoLixeiraMarcada(false); setConfirmarEsvaziarLixeira(true); }} className="border border-red-500/30 px-4 py-2.5 text-sm font-semibold text-red-300 transition hover:bg-red-500/10">Esvaziar lixeira</button>}
+        </div>
+
+        {lixeiraAberta && <div className="mt-5 space-y-3 border-t border-white/10 pt-5">
+          {servicosArquivados.length === 0 ? <p className="text-sm text-zinc-500">A lixeira está vazia.</p> : servicosArquivados.map((servico) => <article key={servico.id} className="flex flex-wrap items-center justify-between gap-3 border border-white/10 bg-black/20 p-4">
+            <div>
+              <p className="font-semibold text-white">{servico.nome}</p>
+              <p className="mt-1 text-sm text-zinc-400">{Number(servico.preco).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} · {servico.duracao} min{servico.excluido_em ? ` · Arquivado em ${new Date(servico.excluido_em).toLocaleDateString("pt-BR")}` : ""}</p>
+            </div>
+            <button type="button" onClick={() => void restaurarServico(servico)} className="border border-white/15 px-4 py-2 text-sm font-semibold text-zinc-200 transition hover:bg-white/5">Restaurar</button>
+          </article>)}
+        </div>}
+      </section>
+
+      {servicoParaExcluir && (
+        <div
+          className="fixed inset-0 z-[100] flex items-end justify-center overflow-y-auto bg-black/80 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+          onClick={fecharConfirmacaoExclusao}
+        >
+          <section
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="titulo-confirmar-exclusao-servico"
+            aria-describedby="descricao-confirmar-exclusao-servico"
+            className="my-auto w-full max-w-md border border-red-500/30 bg-[#0B0F14] p-5 text-white shadow-2xl sm:p-7"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mb-5 flex items-start gap-4 border-b border-white/10 pb-5">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center border border-red-500/30 bg-red-500/10 text-red-300">
+                <Icon name="alert" className="h-6 w-6" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#C9A227]">
+                  Serviços da barbearia
+                </p>
+                <h2 id="titulo-confirmar-exclusao-servico" className="mt-1 text-xl font-bold">
+                  Tem certeza que deseja excluir este serviço?
+                </h2>
+              </div>
+              <button
+                type="button"
+                aria-label="Fechar confirmação de exclusão"
+                disabled={excluindoServico}
+                onClick={fecharConfirmacaoExclusao}
+                className="min-h-11 min-w-11 border border-white/10 text-xl text-zinc-400 transition hover:bg-white/5 hover:text-white disabled:opacity-50"
+              >
+                ×
+              </button>
+            </div>
+
+            <p id="descricao-confirmar-exclusao-servico" className="text-sm leading-6 text-zinc-400">
+              O serviço deixará de aparecer para novos agendamentos. Os agendamentos anteriores e seus dados serão preservados.
+            </p>
+
+            <div className="mt-5 border border-white/10 bg-white/[0.03] p-4">
+              <p className="font-semibold text-white">{servicoParaExcluir.nome}</p>
+              <p className="mt-1 text-sm text-zinc-400">
+                {Number(servicoParaExcluir.preco).toLocaleString("pt-BR", {
+                  style: "currency",
+                  currency: "BRL",
+                })} · {servicoParaExcluir.duracao} minutos
+              </p>
+            </div>
+
+            {erroExclusao && (
+              <p role="alert" className="mt-4 border border-red-500/20 bg-red-500/10 p-3 text-sm leading-5 text-red-300">
+                {erroExclusao}
+              </p>
+            )}
+
+            <label className="mt-5 flex cursor-pointer items-start gap-3 border border-white/10 p-4 text-sm leading-5 text-zinc-200">
+              <input
+                type="checkbox"
+                checked={confirmacaoExclusaoMarcada}
+                disabled={excluindoServico}
+                onChange={(event) => setConfirmacaoExclusaoMarcada(event.target.checked)}
+                className="mt-0.5 h-5 w-5 shrink-0 accent-[#C9A227]"
+              />
+              <span>Confirmo que quero excluir este serviço.</span>
+            </label>
+
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                disabled={excluindoServico}
+                onClick={fecharConfirmacaoExclusao}
+                className="min-h-12 border border-white/15 px-4 py-3 text-sm font-semibold text-zinc-300 transition hover:bg-white/5 disabled:opacity-50"
+              >
+                Voltar
+              </button>
+              <button
+                type="button"
+                disabled={!confirmacaoExclusaoMarcada || excluindoServico}
+                onClick={() => void excluirServico()}
+                className="min-h-12 bg-red-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-red-400 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {excluindoServico ? "Excluindo..." : "Excluir serviço"}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {confirmarEsvaziarLixeira && <div className="fixed inset-0 z-[110] flex items-end justify-center overflow-y-auto bg-black/80 p-0 backdrop-blur-sm sm:items-center sm:p-4" onClick={() => !esvaziandoLixeira && setConfirmarEsvaziarLixeira(false)}>
+        <section role="alertdialog" aria-modal="true" aria-labelledby="titulo-esvaziar-lixeira" className="my-auto w-full max-w-md border border-red-500/30 bg-[#0B0F14] p-5 text-white shadow-2xl sm:p-7" onClick={(event) => event.stopPropagation()}>
+          <h2 id="titulo-esvaziar-lixeira" className="text-xl font-bold">Esvaziar a lixeira?</h2>
+          <p className="mt-2 text-sm leading-6 text-zinc-400">Os serviços arquivados serão apagados permanentemente. Os dados dos agendamentos anteriores continuarão salvos.</p>
+          <label className="mt-5 flex cursor-pointer items-start gap-3 border border-white/10 p-4 text-sm leading-5 text-zinc-200">
+            <input type="checkbox" checked={confirmacaoLixeiraMarcada} disabled={esvaziandoLixeira} onChange={(event) => setConfirmacaoLixeiraMarcada(event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-[#C9A227]" />
+            <span>Confirmo que quero apagar permanentemente os serviços da lixeira.</span>
+          </label>
+          <div className="mt-5 grid grid-cols-2 gap-3">
+            <button type="button" disabled={esvaziandoLixeira} onClick={() => setConfirmarEsvaziarLixeira(false)} className="min-h-12 border border-white/15 px-4 py-3 text-sm font-semibold text-zinc-300 disabled:opacity-50">Cancelar</button>
+            <button type="button" disabled={!confirmacaoLixeiraMarcada || esvaziandoLixeira} onClick={() => void esvaziarLixeira()} className="min-h-12 bg-red-500 px-4 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40">{esvaziandoLixeira ? "Esvaziando..." : "Esvaziar lixeira"}</button>
+          </div>
+        </section>
+      </div>}
     </div>
   );
 }

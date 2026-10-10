@@ -21,7 +21,10 @@ interface Agendamento {
   horario: string;
   status: string;
   usuario_id: string;
-  servico_id: number;
+  servico_id: number | null;
+  servico_nome: string | null;
+  servico_preco: number | null;
+  servico_duracao: number | null;
   servico: {
     nome: string;
     preco: number;
@@ -79,6 +82,9 @@ export default function PainelPage() {
         status,
         usuario_id,
         servico_id,
+        servico_nome,
+        servico_preco,
+        servico_duracao,
         servico:servicos (
           nome,
           preco,
@@ -98,7 +104,14 @@ export default function PainelPage() {
       setAgendamentos([]);
     } else {
       setAgendamentos(
-        (agendamentosData as unknown as Agendamento[]) ?? []
+        ((agendamentosData as unknown as Agendamento[]) ?? []).map((agendamento) => ({
+          ...agendamento,
+          servico: agendamento.servico ?? (agendamento.servico_nome ? {
+            nome: agendamento.servico_nome,
+            preco: agendamento.servico_preco ?? 0,
+            duracao: agendamento.servico_duracao ?? 30,
+          } : null),
+        }))
       );
     }
 
@@ -250,7 +263,7 @@ if (!barbearia) {
         </p>
 
         <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">
-          Olá, barbeiro <Icon name="wave" className="ml-1 inline h-5 w-5 align-[-3px]" />
+          Olá, {barbearia.nome?.trim() || "sua barbearia"} <Icon name="wave" className="ml-1 inline h-5 w-5 align-[-3px]" />
         </h1>
 
         <p className="mt-1 text-sm text-zinc-500">

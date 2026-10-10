@@ -22,7 +22,10 @@ interface Agendamento {
   horario: string;
   status: string;
   usuario_id: string;
-  servico_id: number;
+  servico_id: number | null;
+  servico_nome: string | null;
+  servico_preco: number | null;
+  servico_duracao: number | null;
   servico: Servico | null;
   cliente: Cliente | null;
 }
@@ -33,7 +36,10 @@ interface AgendamentoBase {
   horario: string;
   status: string;
   usuario_id: string;
-  servico_id: number;
+  servico_id: number | null;
+  servico_nome: string | null;
+  servico_preco: number | null;
+  servico_duracao: number | null;
   servico: Servico | Servico[] | null;
 }
 
@@ -179,6 +185,9 @@ export default function AgendaPage() {
           status,
           usuario_id,
           servico_id,
+          servico_nome,
+          servico_preco,
+          servico_duracao,
           servico:servicos (
             nome,
             preco,
@@ -257,11 +266,16 @@ export default function AgendaPage() {
       const agendaFinal: Agendamento[] =
         agendamentosBase.map(
           (agendamento) => {
-            const servico = Array.isArray(
+            const servicoRelacionado = Array.isArray(
               agendamento.servico
             )
               ? agendamento.servico[0] ?? null
               : agendamento.servico ?? null;
+            const servico = servicoRelacionado ?? (agendamento.servico_nome ? {
+              nome: agendamento.servico_nome,
+              preco: agendamento.servico_preco ?? 0,
+              duracao: agendamento.servico_duracao ?? 30,
+            } : null);
 
             return {
               id: agendamento.id,
@@ -270,6 +284,9 @@ export default function AgendaPage() {
               status: agendamento.status,
               usuario_id: agendamento.usuario_id,
               servico_id: agendamento.servico_id,
+              servico_nome: agendamento.servico_nome,
+              servico_preco: agendamento.servico_preco,
+              servico_duracao: agendamento.servico_duracao,
               servico,
               cliente:
                 clientesMap.get(
@@ -718,7 +735,7 @@ export default function AgendaPage() {
   // =========================================================
 
   return (
-    <div className="min-w-0 space-y-6 sm:space-y-8">
+    <div className="agenda-page min-w-0 space-y-6 sm:space-y-8">
 
       {/* =====================================================
           HEADER

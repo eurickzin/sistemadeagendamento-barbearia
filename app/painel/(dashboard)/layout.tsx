@@ -12,6 +12,15 @@ interface Barbearia {
   nome: string | null;
 }
 
+interface Notificacao {
+  id: string;
+  titulo: string;
+  mensagem: string;
+  agendamento_id: number | null;
+  lida_em: string | null;
+  created_at: string;
+}
+
 export default function DashboardLayout({
   children,
 }: {
@@ -23,6 +32,10 @@ export default function DashboardLayout({
 
   const [barbearia, setBarbearia] = useState<Barbearia | null>(null);
   const [carregando, setCarregando] = useState(true);
+  const [notificacoes, setNotificacoes] = useState<Notificacao[]>([]);
+  const [totalNaoLidas, setTotalNaoLidas] = useState(0);
+  const [notificacoesAbertas, setNotificacoesAbertas] = useState(false);
+  const [erroNotificacoes, setErroNotificacoes] = useState("");
 
   useEffect(() => {
     async function carregarBarbearia() {
@@ -54,6 +67,117 @@ export default function DashboardLayout({
 
     carregarBarbearia();
   }, [router, supabase]);
+
+  useEffect(() => {
+    if (!barbearia?.id) return;
+
+    let ativo = true;
+
+    async function carregarNotificacoes() {
+      const [lista, contagem] = await Promise.all([
+        supabase
+          .from("notificacoes_barbeiro")
+          .select("id, titulo, mensagem, agendamento_id, lida_em, created_at")
+          .eq("barbearia_id", barbearia.id)
+          .order("created_at", { ascending: false })
+          .limit(20),
+        supabase
+          .from("notificacoes_barbeiro")
+          .select("id", { count: "exact", head: true })
+          .eq("barbearia_id", barbearia.id)
+          .is("lida_em", null),
+      ]);
+
+      if (!ativo) return;
+      if (lista.error || contagem.error) {
+        const erroBanco = lista.error ?? contagem.error;
+        console.error("Erro ao carregar notificações:", JSON.stringify({
+          code: erroBanco.code,
+          message: erroBanco.message,
+          details: erroBanco.details,
+          hint: erroBanco.hint,
+        }));
+
+        const mensagemErro = erroBanco.message?.toLowerCase() ?? "";
+        if (erroBanco.code === "PGRST205" || erroBanco.code === "42P01" || mensagemErro.includes("notificacoes_barbeiro")) {
+          setErroNotificacoes("A tabela de notificações ainda não está disponível. Execute supabase/notificacoes-barbeiro.sql no SQL Editor do Supabase.");
+        } else if (erroBanco.code === "42501") {
+          setErroNotificacoes("O Supabase bloqueou o acesso às notificações. Execute novamente supabase/notificacoes-barbeiro.sql para aplicar as permissões.");
+        } else {
+          setErroNotificacoes("Não foi possível carregar as notificações. Confira a configuração do Supabase.");
+        }
+        return;
+      }
+
+      setErroNotificacoes("");
+      setNotificacoes((lista.data ?? []) as Notificacao[]);
+      setTotalNaoLidas(contagem.count ?? 0);
+    }
+
+    void carregarNotificacoes();
+
+    const canal = supabase
+      .channel(`notificacoes-barbearia-${barbearia.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notificacoes_barbeiro",
+          filter: `barbearia_id=eq.${barbearia.id}`,
+        },
+        () => void carregarNotificacoes(),
+      )
+      .subscribe();
+
+    return () => {
+      ativo = false;
+      void supabase.removeChannel(canal);
+    };
+  }, [barbearia?.id, supabase]);
+
+  async function marcarNotificacaoComoLida(notificacao: Notificacao) {
+    if (!notificacao.lida_em) {
+      const lidaEm = new Date().toISOString();
+      const { error } = await supabase
+        .from("notificacoes_barbeiro")
+        .update({ lida_em: lidaEm })
+        .eq("id", notificacao.id)
+        .is("lida_em", null);
+
+      if (error) {
+        console.error("Erro ao marcar notificação como lida:", error);
+        return;
+      }
+
+      setNotificacoes((atuais) => atuais.map((item) =>
+        item.id === notificacao.id ? { ...item, lida_em: lidaEm } : item,
+      ));
+      setTotalNaoLidas((atual) => Math.max(0, atual - 1));
+    }
+
+    setNotificacoesAbertas(false);
+    router.push("/painel/agenda");
+  }
+
+  async function marcarTodasComoLidas() {
+    if (!barbearia || totalNaoLidas === 0) return;
+
+    const lidaEm = new Date().toISOString();
+    const { error } = await supabase
+      .from("notificacoes_barbeiro")
+      .update({ lida_em: lidaEm })
+      .eq("barbearia_id", barbearia.id)
+      .is("lida_em", null);
+
+    if (error) {
+      console.error("Erro ao marcar notificações como lidas:", error);
+      return;
+    }
+
+    setNotificacoes((atuais) => atuais.map((item) => ({ ...item, lida_em: item.lida_em ?? lidaEm })));
+    setTotalNaoLidas(0);
+  }
 
   async function sair() {
     await supabase.auth.signOut();
@@ -244,8 +368,84 @@ export default function DashboardLayout({
                   </p>
                 </div>
 
-                <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5">
-                  <Icon name="bell" className="h-5 w-5" />
+                <div className="relative">
+                  <button
+                    type="button"
+                    aria-label={totalNaoLidas > 0 ? `Notificações, ${totalNaoLidas} não lidas` : "Notificações"}
+                    aria-expanded={notificacoesAbertas}
+                    aria-controls="painel-notificacoes"
+                    onClick={() => setNotificacoesAbertas((abertas) => !abertas)}
+                    className="relative flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 transition hover:bg-white/10"
+                  >
+                    <Icon name="bell" className="h-5 w-5" />
+                    {totalNaoLidas > 0 && (
+                      <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#C9A227] px-1 text-[10px] font-bold text-black">
+                        {totalNaoLidas > 99 ? "99+" : totalNaoLidas}
+                      </span>
+                    )}
+                  </button>
+
+                  {notificacoesAbertas && (
+                    <section
+                      id="painel-notificacoes"
+                      aria-label="Notificações de agendamentos"
+                      className="absolute right-0 top-12 z-50 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-zinc-800 bg-[#10151C] shadow-2xl"
+                    >
+                      <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
+                        <div>
+                          <h2 className="font-semibold">Notificações</h2>
+                          <p className="text-xs text-zinc-500">
+                            {totalNaoLidas} não {totalNaoLidas === 1 ? "lida" : "lidas"}
+                          </p>
+                        </div>
+                        {totalNaoLidas > 0 && (
+                          <button
+                            type="button"
+                            onClick={marcarTodasComoLidas}
+                            className="text-xs font-medium text-[#C9A227] hover:underline"
+                          >
+                            Marcar todas como lidas
+                          </button>
+                        )}
+                      </div>
+
+                      {erroNotificacoes ? (
+                        <p role="alert" className="px-4 py-5 text-sm leading-6 text-amber-300">
+                          {erroNotificacoes}
+                        </p>
+                      ) : notificacoes.length === 0 ? (
+                        <p className="px-4 py-8 text-center text-sm text-zinc-500">
+                          Nenhum agendamento novo por enquanto.
+                        </p>
+                      ) : (
+                        <ul className="max-h-96 divide-y divide-white/5 overflow-y-auto">
+                          {notificacoes.map((notificacao) => (
+                            <li key={notificacao.id}>
+                              <button
+                                type="button"
+                                onClick={() => void marcarNotificacaoComoLida(notificacao)}
+                                className={`flex w-full gap-3 px-4 py-3 text-left transition hover:bg-white/5 ${notificacao.lida_em ? "opacity-75" : "bg-[#C9A227]/5"}`}
+                              >
+                                <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${notificacao.lida_em ? "bg-zinc-600" : "bg-[#C9A227]"}`} aria-hidden="true" />
+                                <span className="min-w-0 flex-1">
+                                  <span className="block text-sm font-semibold">{notificacao.titulo}</span>
+                                  <span className="mt-1 block text-sm text-zinc-400">{notificacao.mensagem}</span>
+                                  <span className="mt-1 block text-xs text-zinc-500">
+                                    {new Date(notificacao.created_at).toLocaleString("pt-BR", {
+                                      day: "2-digit",
+                                      month: "2-digit",
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })}
+                                  </span>
+                                </span>
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </section>
+                  )}
                 </div>
               </div>
             </div>

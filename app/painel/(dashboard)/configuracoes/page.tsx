@@ -3,7 +3,7 @@
 import { ChangeEvent, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Icon from "@/components/ui/Icon";
-import { uploadProfileImage } from "@/lib/profile-images";
+import { getProfileImageStoragePath, uploadProfileImage } from "@/lib/profile-images";
 
 interface Barbearia {
   id: string;
@@ -15,6 +15,15 @@ interface Barbearia {
   capa_url: string | null;
   instagram: string | null;
   endereco: string | null;
+  horario_abertura: string;
+  horario_fechamento: string;
+  dia_folga: number;
+}
+
+interface Barbeiro {
+  id: string;
+  nome: string;
+  ativo: boolean;
   horario_abertura: string;
   horario_fechamento: string;
   dia_folga: number;
@@ -40,9 +49,16 @@ export default function ConfiguracoesPage() {
 
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
+  const [imagemParaRemover, setImagemParaRemover] = useState<"logo_url" | "capa_url" | null>(null);
 
   const [mensagem, setMensagem] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  const [barbeiros, setBarbeiros] = useState<Barbeiro[]>([]);
+  const [carregandoBarbeiros, setCarregandoBarbeiros] = useState(true);
+  const [nomeNovoBarbeiro, setNomeNovoBarbeiro] = useState("");
+  const [salvandoBarbeiro, setSalvandoBarbeiro] = useState<string | null>(null);
+  const [mensagemEquipe, setMensagemEquipe] = useState("");
+  const [erroEquipe, setErroEquipe] = useState("");
 
   useEffect(() => {
     async function carregarConfiguracoes() {
@@ -97,6 +113,19 @@ export default function ConfiguracoesPage() {
         setBarbearia(data);
         setDiaFolga(data.dia_folga);
         setProprietarioId(user.id);
+
+        const { data: equipe, error: erroEquipeBanco } = await supabase
+          .from("barbeiros")
+          .select("id, nome, ativo, horario_abertura, horario_fechamento, dia_folga")
+          .eq("barbearia_id", data.id)
+          .order("nome", { ascending: true });
+
+        if (erroEquipeBanco) {
+          console.error("Erro ao carregar barbeiros:", erroEquipeBanco);
+          setErroEquipe("Não foi possível carregar a equipe. Confira se supabase/barbeiros.sql já foi executado no Supabase.");
+        } else {
+          setBarbeiros((equipe ?? []) as Barbeiro[]);
+        }
       } catch (error) {
         console.error(
           "Erro ao carregar configurações:",
@@ -112,6 +141,7 @@ export default function ConfiguracoesPage() {
         }
       } finally {
         setCarregando(false);
+        setCarregandoBarbeiros(false);
       }
     }
 
@@ -204,7 +234,7 @@ const { error } = await supabase
     }
   }
 
-  function atualizar(campo: keyof Barbearia, valor: string) {
+  function atualizar(campo: keyof Barbearia, valor: string | null) {
     setBarbearia((atual) => atual ? { ...atual, [campo]: valor } : atual);
     setMensagem(null);
   }
@@ -234,6 +264,130 @@ const { error } = await supabase
     }
   }
 
+  async function removerImagem() {
+    if (!barbearia || !proprietarioId || !imagemParaRemover) return;
+
+    const campo = imagemParaRemover;
+    const url = barbearia[campo];
+    if (!url) {
+      setImagemParaRemover(null);
+      return;
+    }
+
+    setSalvando(true);
+    setErro(null);
+    setMensagem(null);
+    try {
+      const { data: imagemAtualizada, error: atualizarError } = await supabase
+        .from("barbearias")
+        .update({ [campo]: null })
+        .eq("id", barbearia.id)
+        .eq("proprietario_id", proprietarioId)
+        .select("id")
+        .maybeSingle();
+
+      if (atualizarError || !imagemAtualizada) {
+        throw new Error(atualizarError
+          ? `Não foi possível remover a imagem do perfil: ${atualizarError.message}`
+          : "Não foi possível confirmar a remoção da imagem no perfil.");
+      }
+
+      atualizar(campo, null);
+      setImagemParaRemover(null);
+
+      const path = getProfileImageStoragePath(url);
+      const nomeArquivoEsperado = campo === "logo_url" ? "barbershop-logo-" : "barbershop-cover-";
+      if (path?.startsWith(`${proprietarioId}/${nomeArquivoEsperado}`)) {
+        const { error: removerArquivoError } = await supabase.storage
+          .from("profile-images")
+          .remove([path]);
+        if (removerArquivoError) {
+          setMensagem(campo === "logo_url"
+            ? "Foto removida do perfil. O arquivo antigo não pôde ser apagado do armazenamento."
+            : "Capa removida do perfil. O arquivo antigo não pôde ser apagado do armazenamento.");
+          return;
+        }
+      }
+
+      setMensagem(campo === "logo_url" ? "Foto do perfil removida com sucesso." : "Capa removida com sucesso.");
+    } catch (remocaoError) {
+      setErro(remocaoError instanceof Error ? remocaoError.message : "Não foi possível remover a imagem.");
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  function atualizarHorarioBarbeiro(id: string, campo: keyof Barbeiro, valor: string | boolean | number) {
+    setBarbeiros((atuais) => atuais.map((barbeiro) =>
+      barbeiro.id === id ? { ...barbeiro, [campo]: valor } : barbeiro,
+    ));
+    setMensagemEquipe("");
+    setErroEquipe("");
+  }
+
+  async function cadastrarBarbeiro() {
+    if (!barbearia || !nomeNovoBarbeiro.trim()) {
+      setErroEquipe("Informe o nome do barbeiro.");
+      return;
+    }
+
+    setSalvandoBarbeiro("novo");
+    setErroEquipe("");
+    setMensagemEquipe("");
+    const { data, error } = await supabase
+      .from("barbeiros")
+      .insert({
+        barbearia_id: barbearia.id,
+        nome: nomeNovoBarbeiro.trim(),
+        horario_abertura: barbearia.horario_abertura || "08:00",
+        horario_fechamento: barbearia.horario_fechamento || "21:00",
+        dia_folga: diaFolga ?? 0,
+      })
+      .select("id, nome, ativo, horario_abertura, horario_fechamento, dia_folga")
+      .single();
+
+    if (error) {
+      console.error("Erro ao cadastrar barbeiro:", error);
+      setErroEquipe("Não foi possível cadastrar o barbeiro. Confira as permissões e a migração supabase/barbeiros.sql.");
+    } else {
+      setBarbeiros((atuais) => [...atuais, data as Barbeiro].sort((a, b) => a.nome.localeCompare(b.nome)));
+      setNomeNovoBarbeiro("");
+      setMensagemEquipe("Barbeiro cadastrado. Ajuste os horários individuais e salve.");
+    }
+    setSalvandoBarbeiro(null);
+  }
+
+  async function salvarBarbeiro(barbeiro: Barbeiro) {
+    if (!barbearia) return;
+    if (barbeiro.horario_abertura >= barbeiro.horario_fechamento) {
+      setErroEquipe(`O horário de fechamento de ${barbeiro.nome} precisa ser depois da abertura.`);
+      return;
+    }
+
+    setSalvandoBarbeiro(barbeiro.id);
+    setErroEquipe("");
+    setMensagemEquipe("");
+    const { error } = await supabase
+      .from("barbeiros")
+      .update({
+        nome: barbeiro.nome.trim(),
+        ativo: barbeiro.ativo,
+        horario_abertura: barbeiro.horario_abertura,
+        horario_fechamento: barbeiro.horario_fechamento,
+        dia_folga: barbeiro.dia_folga,
+      })
+      .eq("id", barbeiro.id)
+      .eq("barbearia_id", barbearia.id);
+
+    if (error) {
+      console.error("Erro ao atualizar barbeiro:", error);
+      setErroEquipe(`Não foi possível salvar ${barbeiro.nome}.`);
+    } else {
+      setMensagemEquipe(`Dados de ${barbeiro.nome} salvos.`);
+    }
+    setSalvandoBarbeiro(null);
+  }
+
   const nomeDiaFolga =
     diaFolga !== null
       ? DIAS_DA_SEMANA.find(
@@ -256,7 +410,7 @@ const { error } = await supabase
   }
 
   return (
-    <div className="mx-auto min-w-0 max-w-4xl space-y-6 sm:space-y-8">
+    <div className="settings-page mx-auto min-w-0 max-w-4xl space-y-6 sm:space-y-8">
 
       {/* HEADER */}
       <div>
@@ -323,12 +477,137 @@ const { error } = await supabase
             <label className="text-sm text-zinc-400">Abre às<input disabled={!camposAvancadosDisponiveis} type="time" value={(barbearia.horario_abertura ?? "08:00").slice(0, 5)} onChange={(e) => atualizar("horario_abertura", e.target.value)} className="mt-2 w-full border border-zinc-700 bg-[#0B0F14] px-3 py-3 text-white disabled:opacity-40" /></label>
             <label className="text-sm text-zinc-400">Fecha às<input disabled={!camposAvancadosDisponiveis} type="time" value={(barbearia.horario_fechamento ?? "21:00").slice(0, 5)} onChange={(e) => atualizar("horario_fechamento", e.target.value)} className="mt-2 w-full border border-zinc-700 bg-[#0B0F14] px-3 py-3 text-white disabled:opacity-40" /></label>
           </div>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <label className="cursor-pointer border border-zinc-700 px-4 py-3 text-sm text-white">{barbearia.logo_url ? "Trocar logo" : "Adicionar logo"}<input type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => enviarImagem(e, "logo_url")} className="sr-only" /></label>
             <label aria-disabled={!camposAvancadosDisponiveis} className={`border border-zinc-700 px-4 py-3 text-sm text-white ${camposAvancadosDisponiveis ? "cursor-pointer" : "cursor-not-allowed opacity-40"}`}>{barbearia.capa_url ? "Trocar capa" : "Adicionar capa"}<input disabled={!camposAvancadosDisponiveis} type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => enviarImagem(e, "capa_url")} className="sr-only" /></label>
             {barbearia.logo_url && <img src={barbearia.logo_url} alt="Prévia do logo" className="h-12 w-12 object-cover" />}
+            {barbearia.logo_url && <button type="button" onClick={() => setImagemParaRemover("logo_url")} disabled={salvando} className="border border-red-500/40 px-4 py-3 text-sm text-red-300 transition hover:bg-red-500/10 disabled:opacity-50">Remover foto</button>}
+            {barbearia.capa_url && camposAvancadosDisponiveis && <button type="button" onClick={() => setImagemParaRemover("capa_url")} disabled={salvando} className="border border-red-500/40 px-4 py-3 text-sm text-red-300 transition hover:bg-red-500/10 disabled:opacity-50">Remover capa</button>}
           </div>
         </>}
+      </section>
+
+      {imagemParaRemover && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !salvando) setImagemParaRemover(null); }}>
+        <section role="dialog" aria-modal="true" aria-labelledby="remover-imagem-titulo" className="w-full max-w-md border border-zinc-700 bg-[#10151C] p-6 shadow-2xl">
+          <h2 id="remover-imagem-titulo" className="text-lg font-semibold text-white">Remover {imagemParaRemover === "logo_url" ? "foto do perfil" : "capa"}?</h2>
+          <p className="mt-2 text-sm leading-6 text-zinc-400">Essa imagem deixará de aparecer no perfil público da barbearia.</p>
+          <div className="mt-6 flex justify-end gap-3">
+            <button type="button" disabled={salvando} onClick={() => setImagemParaRemover(null)} className="border border-zinc-700 px-4 py-2.5 text-sm text-zinc-200 disabled:opacity-50">Cancelar</button>
+            <button type="button" disabled={salvando} onClick={removerImagem} className="bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-500 disabled:opacity-50">{salvando ? "Removendo..." : "Remover imagem"}</button>
+          </div>
+        </section>
+      </div>}
+
+      {/* EQUIPE */}
+      <section className="space-y-5 border border-zinc-800 bg-[#10151C] p-4 sm:p-6">
+        <div>
+          <h2 className="text-lg font-semibold text-white">Barbeiros</h2>
+          <p className="mt-1 max-w-2xl text-sm leading-6 text-zinc-500">
+            Cadastre a equipe e configure o expediente de cada profissional. Os horários reservados para um barbeiro não bloqueiam a agenda dos outros.
+          </p>
+        </div>
+
+        {erroEquipe && <p role="alert" className="border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">{erroEquipe}</p>}
+        {mensagemEquipe && <p role="status" className="border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm text-emerald-300">{mensagemEquipe}</p>}
+
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <label className="min-w-0 flex-1 text-sm text-zinc-400">
+            Nome do novo barbeiro
+            <input
+              value={nomeNovoBarbeiro}
+              onChange={(event) => setNomeNovoBarbeiro(event.target.value)}
+              maxLength={100}
+              placeholder="Ex.: João Silva"
+              className="mt-2 w-full border border-zinc-700 bg-[#0B0F14] px-3 py-3 text-white placeholder:text-zinc-600"
+            />
+          </label>
+          <button
+            type="button"
+            onClick={cadastrarBarbeiro}
+            disabled={salvandoBarbeiro !== null || !nomeNovoBarbeiro.trim()}
+            className="self-end bg-[#C9A227] px-5 py-3 text-sm font-semibold text-black transition hover:bg-[#E0BB35] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {salvandoBarbeiro === "novo" ? "Cadastrando..." : "Adicionar barbeiro"}
+          </button>
+        </div>
+
+        {carregandoBarbeiros ? (
+          <p className="text-sm text-zinc-500">Carregando equipe...</p>
+        ) : barbeiros.length === 0 ? (
+          <p className="border border-dashed border-zinc-700 p-4 text-sm text-zinc-500">
+            Ainda não há barbeiros cadastrados. Depois de executar a migração, será possível adicionar a equipe aqui.
+          </p>
+        ) : (
+          <div className="space-y-4">
+            {barbeiros.map((barbeiro) => (
+              <article key={barbeiro.id} className="space-y-4 border border-zinc-800 bg-[#0B0F14]/60 p-4 sm:p-5">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                  <label className="min-w-0 flex-1 text-sm text-zinc-400">
+                    Nome
+                    <input
+                      value={barbeiro.nome}
+                      onChange={(event) => atualizarHorarioBarbeiro(barbeiro.id, "nome", event.target.value)}
+                      maxLength={100}
+                      className="mt-2 w-full border border-zinc-700 bg-[#10151C] px-3 py-3 text-white"
+                    />
+                  </label>
+                  <label className="flex min-h-11 items-center gap-2 text-sm text-zinc-300">
+                    <input
+                      type="checkbox"
+                      checked={barbeiro.ativo}
+                      disabled={barbeiro.ativo && barbeiros.filter((item) => item.ativo).length <= 1}
+                      onChange={(event) => atualizarHorarioBarbeiro(barbeiro.id, "ativo", event.target.checked)}
+                      className="h-4 w-4 accent-[#C9A227]"
+                    />
+                    Atende clientes
+                  </label>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <label className="text-sm text-zinc-400">
+                    Abre às
+                    <input
+                      type="time"
+                      value={barbeiro.horario_abertura.slice(0, 5)}
+                      onChange={(event) => atualizarHorarioBarbeiro(barbeiro.id, "horario_abertura", event.target.value)}
+                      className="mt-2 w-full border border-zinc-700 bg-[#10151C] px-3 py-3 text-white"
+                    />
+                  </label>
+                  <label className="text-sm text-zinc-400">
+                    Fecha às
+                    <input
+                      type="time"
+                      value={barbeiro.horario_fechamento.slice(0, 5)}
+                      onChange={(event) => atualizarHorarioBarbeiro(barbeiro.id, "horario_fechamento", event.target.value)}
+                      className="mt-2 w-full border border-zinc-700 bg-[#10151C] px-3 py-3 text-white"
+                    />
+                  </label>
+                  <label className="text-sm text-zinc-400">
+                    Dia de folga
+                    <select
+                      value={barbeiro.dia_folga}
+                      onChange={(event) => atualizarHorarioBarbeiro(barbeiro.id, "dia_folga", Number(event.target.value))}
+                      className="mt-2 w-full border border-zinc-700 bg-[#10151C] px-3 py-3 text-white"
+                    >
+                      {DIAS_DA_SEMANA.map((dia) => <option key={dia.valor} value={dia.valor}>{dia.nome}</option>)}
+                    </select>
+                  </label>
+                </div>
+
+                <div className="flex justify-end border-t border-zinc-800 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => salvarBarbeiro(barbeiro)}
+                    disabled={salvandoBarbeiro !== null || !barbeiro.nome.trim()}
+                    className="border border-[#C9A227]/40 px-4 py-2.5 text-sm font-semibold text-[#E0BB35] transition hover:bg-[#C9A227]/10 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {salvandoBarbeiro === barbeiro.id ? "Salvando..." : "Salvar barbeiro"}
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* DIA DE FOLGA */}
