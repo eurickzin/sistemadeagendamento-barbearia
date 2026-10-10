@@ -1,5 +1,5 @@
 import CatalogoBarbearias from "./_components/CatalogoBarbearias";
-import { createClient } from "@/lib/supabase/server";
+import { carregarCatalogoPublico } from "@/lib/supabase/public-data";
 
 interface Barbearia {
   id: string;
@@ -10,18 +10,13 @@ interface Barbearia {
 }
 
 export default async function BarbeariasPage() {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("barbearias")
-    .select("id, nome, slug, descricao, logo_url")
-    .eq("ativa", true)
-    .order("nome", { ascending: true });
+  const { data, error } = await carregarCatalogoPublico();
 
-  if (error) console.error("Erro ao carregar barbearias:", error);
+  if (error) console.error("Erro ao carregar barbearias:", error.message);
 
   return (
     <CatalogoBarbearias
-      barbearias={(data ?? []) as Barbearia[]}
+      barbearias={data as Barbearia[]}
       erroInicial={!!error}
     />
   );

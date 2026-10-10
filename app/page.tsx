@@ -138,7 +138,7 @@ export default function Home() {
         id="inicio"
         className="relative overflow-hidden border-b border-white/10"
       >
-        <div className="pointer-events-none absolute left-1/2 top-0 h-[500px] w-[700px] -translate-x-1/2 rounded-full bg-[#C9A227]/10 blur-[80px] sm:blur-[140px]" />
+        <div className="pointer-events-none absolute left-1/2 top-0 h-64 w-64 -translate-x-1/2 rounded-full bg-[#C9A227]/10 blur-3xl sm:h-[500px] sm:w-[700px] sm:blur-[140px]" />
 
         <div className="relative mx-auto flex min-h-[620px] max-w-6xl items-center px-4 pb-16 pt-32 sm:min-h-[760px] sm:px-6 sm:pb-24 sm:pt-40">
           <Reveal direction="left">

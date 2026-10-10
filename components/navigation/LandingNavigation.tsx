@@ -12,8 +12,37 @@ const SECOES = [
 
 export default function LandingNavigation() {
   const [secaoAtiva, setSecaoAtiva] = useState("inicio");
+  const navegacaoMobileRef = useRef<HTMLElement | null>(null);
   const navegacaoPendente = useRef(false);
   const timeoutNavegacao = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!window.matchMedia("(max-width: 1023px)").matches) return;
+
+    const navegacao = navegacaoMobileRef.current;
+    const itemAtivo = navegacao?.querySelector<HTMLElement>(
+      `[data-secao="${secaoAtiva}"]`,
+    );
+    if (!navegacao || !itemAtivo) return;
+
+    const reduzirMovimento = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    const retanguloNav = navegacao.getBoundingClientRect();
+    const retanguloItem = itemAtivo.getBoundingClientRect();
+    const deslocamento =
+      retanguloItem.left -
+      retanguloNav.left -
+      (navegacao.clientWidth - retanguloItem.width) / 2;
+    const novoScrollLeft = Math.max(0, navegacao.scrollLeft + deslocamento);
+
+    if (Math.abs(novoScrollLeft - navegacao.scrollLeft) > 2) {
+      navegacao.scrollTo({
+        left: novoScrollLeft,
+        behavior: reduzirMovimento ? "auto" : "smooth",
+      });
+    }
+  }, [secaoAtiva]);
 
   useEffect(() => {
     let frame = 0;
@@ -111,12 +140,13 @@ export default function LandingNavigation() {
         })}
       </nav>
 
-      <nav aria-label="Navegação principal" className="mobile-nav relative z-[60] order-3 flex w-full gap-1 overflow-x-auto border-t border-white/10 px-4 py-1 lg:hidden">
+      <nav ref={navegacaoMobileRef} aria-label="Navegação principal" className="mobile-nav relative z-[60] order-3 flex w-full gap-1 overflow-x-auto border-t border-white/10 px-4 py-1 lg:hidden">
         {SECOES.map((secao) => {
           const ativa = secaoAtiva === secao.id;
           return (
             <a
               key={secao.id}
+              data-secao={secao.id}
               href={`#${secao.id}`}
               onClick={(event) => navegarParaSecao(event, secao.id)}
               aria-current={ativa ? "location" : undefined}
