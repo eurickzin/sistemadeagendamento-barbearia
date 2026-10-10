@@ -27,7 +27,7 @@ export default function ThemeToggle() {
       onClick={toggleTheme}
       aria-label={`Ativar modo ${theme === "dark" ? "claro" : "escuro"}`}
       title={`Ativar modo ${theme === "dark" ? "claro" : "escuro"}`}
-      className="theme-toggle fixed bottom-4 right-4 z-[10000] inline-flex min-h-11 items-center gap-2 border px-4 py-2 text-sm font-semibold shadow-lg transition-colors"
+      className="theme-toggle z-[10000] inline-flex min-h-11 items-center gap-2 border px-4 py-2 text-sm font-semibold shadow-lg transition-colors"
     >
       <svg
         aria-hidden="true"

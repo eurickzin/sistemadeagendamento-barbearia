@@ -91,6 +91,14 @@
   color: #171717;
 }
 
+.theme-toggle {
+  position: fixed !important;
+  right: calc(env(safe-area-inset-right, 0px) + 1rem) !important;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 1rem) !important;
+  z-index: 10000;
+  touch-action: manipulation;
+}
+
 :root[data-theme="light"] .theme-dark-action {
   border-color: #303740 !important;
   background-color: #303740 !important;
