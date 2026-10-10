@@ -1,8 +1,9 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: dark;
+  --background: #0b0f14;
+  --foreground: #ededed;
 }
 
 @theme inline {
@@ -12,11 +13,100 @@
   --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root[data-theme="light"] {
+  color-scheme: light;
+  --background: #f5f6f8;
+  --foreground: #171717;
+}
+
+/* Utility classes used by the existing dark interface are remapped in light mode. */
+:root[data-theme="light"] [class~="bg-[#0B0F14]"],
+:root[data-theme="light"] [class~="bg-[#0B0F14]/90"],
+:root[data-theme="light"] [class~="bg-[#0B0F14]/80"],
+:root[data-theme="light"] [class~="bg-[#11151B]"],
+:root[data-theme="light"] [class~="bg-[#11151B]/90"],
+:root[data-theme="light"] [class~="bg-[#11151B]/95"],
+:root[data-theme="light"] [class~="bg-[#10151C]"],
+:root[data-theme="light"] [class~="bg-[#090D12]"] {
+  background-color: rgb(255 255 255 / 96%) !important;
+}
+
+:root[data-theme="light"] [class~="text-white"],
+:root[data-theme="light"] [class~="text-zinc-100"],
+:root[data-theme="light"] [class~="text-zinc-200"] {
+  color: #171717 !important;
+}
+
+:root[data-theme="light"] [class~="text-zinc-300"] {
+  color: #3f4650 !important;
+}
+
+:root[data-theme="light"] [class~="text-zinc-400"] {
+  color: #525b66 !important;
+}
+
+:root[data-theme="light"] [class~="text-zinc-500"],
+:root[data-theme="light"] [class~="text-zinc-600"] {
+  color: #68717d !important;
+}
+
+:root[data-theme="light"] [class~="text-zinc-700"],
+:root[data-theme="light"] [class~="text-zinc-800"] {
+  color: #818a95 !important;
+}
+
+:root[data-theme="light"] [class~="hover:text-white"]:hover {
+  color: #171717 !important;
+}
+
+:root[data-theme="light"] [class~="border-white/5"],
+:root[data-theme="light"] [class~="border-white/10"],
+:root[data-theme="light"] [class~="border-white/15"],
+:root[data-theme="light"] [class~="border-white/20"],
+:root[data-theme="light"] [class~="border-white/25"],
+:root[data-theme="light"] [class~="border-white/30"] {
+  border-color: rgb(23 23 23 / 12%) !important;
+}
+
+:root[data-theme="light"] [class~="bg-white/5"],
+:root[data-theme="light"] [class~="bg-white/10"] {
+  background-color: rgb(23 23 23 / 4%) !important;
+}
+
+:root[data-theme="light"] :is(button, a)[class~="bg-white"],
+:root[data-theme="light"] :is(button, a)[class~="bg-gray-50"],
+:root[data-theme="light"] :is(button, a)[class~="bg-gray-100"],
+:root[data-theme="light"] :is(button, a)[class~="bg-slate-50"],
+:root[data-theme="light"] :is(button, a)[class~="bg-neutral-50"],
+:root[data-theme="light"] :is(button, a)[class~="bg-zinc-50"],
+:root[data-theme="light"] :is(button, a)[class~="bg-[#fff]"],
+:root[data-theme="light"] :is(button, a)[class~="bg-[#ffffff]"] {
+  background-color: #303740 !important;
+  color: #ffffff !important;
+}
+
+:root[data-theme="light"] .theme-toggle {
+  border-color: #d1d5db;
+  background: #ffffff;
+  color: #171717;
+}
+
+:root[data-theme="light"] .theme-dark-action {
+  border-color: #303740 !important;
+  background-color: #303740 !important;
+  color: #ffffff !important;
+}
+
+:root[data-theme="light"] .theme-dark-action:hover {
+  border-color: #454e59 !important;
+  background-color: #454e59 !important;
+  color: #ffffff !important;
+}
+
+:root:not([data-theme="light"]) .theme-toggle {
+  border-color: rgb(255 255 255 / 20%);
+  background: #11151b;
+  color: #f5f5f5;
 }
 
 body {
@@ -78,6 +168,29 @@ body {
 
 html {
   scroll-behavior: smooth;
+}
+
+#inicio,
+#funcionalidades,
+#como-funciona,
+#beneficios,
+#planos {
+  scroll-margin-top: 8rem;
+}
+
+@media (min-width: 1024px) {
+  #inicio,
+  #funcionalidades,
+  #como-funciona,
+  #beneficios,
+  #planos {
+    scroll-margin-top: 6rem;
+  }
+}
+
+:is(a, button, input, select, textarea):focus-visible {
+  outline: 2px solid #c9a227;
+  outline-offset: 3px;
 }
 
 /* ========================================

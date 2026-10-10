@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import Icon from "@/app/components/Icon";
+import Icon from "@/components/ui/Icon";
 
 interface Barbearia {
   id: string;
@@ -252,11 +252,12 @@ export default function DashboardLayout({
           </header>
 
           {/* MENU MOBILE */}
-          <div className="mobile-nav border-b border-white/10 px-4 py-2 lg:hidden">
+          <nav aria-label="Navegação do painel" className="mobile-nav border-b border-white/10 px-4 py-2 lg:hidden">
             <div className="flex gap-2 overflow-x-auto">
               <Link
                 href="/painel"
                 className={classeLinkMobile(estaNoDashboard)}
+                aria-current={estaNoDashboard ? "page" : undefined}
               >
                 Dashboard
               </Link>
@@ -264,6 +265,7 @@ export default function DashboardLayout({
               <Link
                 href="/painel/agenda"
                 className={classeLinkMobile(estaNaAgenda)}
+                aria-current={estaNaAgenda ? "page" : undefined}
               >
                 Agenda
               </Link>
@@ -271,6 +273,7 @@ export default function DashboardLayout({
               <Link
                 href="/painel/servicos"
                 className={classeLinkMobile(estaNosServicos)}
+                aria-current={estaNosServicos ? "page" : undefined}
               >
                 Serviços
               </Link>
@@ -278,6 +281,7 @@ export default function DashboardLayout({
               <Link
                 href="/painel/configuracoes"
                 className={classeLinkMobile(estaNasConfiguracoes)}
+                aria-current={estaNasConfiguracoes ? "page" : undefined}
               >
                 Configurações
               </Link>
@@ -290,7 +294,7 @@ export default function DashboardLayout({
                 Sair
               </button>
             </div>
-          </div>
+          </nav>
 
           {/* PÁGINA */}
           <div className="min-w-0 px-4 py-6 sm:px-6 sm:py-8 lg:px-10 lg:py-10">

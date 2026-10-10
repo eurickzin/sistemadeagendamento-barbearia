@@ -11,7 +11,9 @@ type IconName =
   | "externalLink"
   | "logout"
   | "check"
-  | "alert";
+  | "alert"
+  | "edit"
+  | "search";
 
 export default function Icon({
   name,
@@ -107,6 +109,13 @@ export default function Icon({
         <>
           <path d="m10.3 3.9-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3.1l-8-14a2 2 0 0 0-3.4 0Z" />
           <path d="M12 9v4m0 4h.01" />
+        </>
+      )}
+      {name === "edit" && <path d="m15 5 4 4M4 20l4.2-.8L19 8.4 15.6 5 4.8 15.8 4 20Z" />}
+      {name === "search" && (
+        <>
+          <circle cx="10.8" cy="10.8" r="6.8" />
+          <path d="m16 16 5 5" />
         </>
       )}
     </svg>

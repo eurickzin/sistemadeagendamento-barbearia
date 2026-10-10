@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import Icon from "@/app/components/Icon";
+import Icon from "@/components/ui/Icon";
 
 interface Barbearia {
   id: string;

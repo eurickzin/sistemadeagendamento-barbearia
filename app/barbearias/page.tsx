@@ -1,4 +1,4 @@
-import CatalogoBarbearias from "./CatalogoBarbearias";
+import CatalogoBarbearias from "./_components/CatalogoBarbearias";
 import { createClient } from "@/lib/supabase/server";
 
 interface Barbearia {

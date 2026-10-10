@@ -3,7 +3,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
-import Icon from "@/app/components/Icon";
+import Icon from "@/components/ui/Icon";
 
 interface Servico {
   id: number;

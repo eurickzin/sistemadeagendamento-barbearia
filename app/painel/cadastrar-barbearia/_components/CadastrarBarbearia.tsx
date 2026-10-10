@@ -3,7 +3,7 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import Icon from "@/app/components/Icon";
+import Icon from "@/components/ui/Icon";
 
 export default function CadastrarBarbearia() {
   const router = useRouter();

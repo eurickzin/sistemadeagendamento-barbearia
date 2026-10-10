@@ -1,11 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 
 import { createClient } from "@/lib/supabase/client";
 
-import CadastroModal from "./CadastroModal";
-import LoginModal from "./LoginModal";
+const CadastroModal = dynamic(() => import("./CadastroModal"), {
+  loading: () => null,
+});
+const LoginModal = dynamic(() => import("./LoginModal"), {
+  loading: () => null,
+});
 
 export default function CadastroButton() {
   const [cadastroAberto, setCadastroAberto] = useState(false);
@@ -75,17 +80,17 @@ export default function CadastroButton() {
         </button>
       )}
 
-      <CadastroModal
+      {cadastroAberto && <CadastroModal
         aberto={cadastroAberto}
         onFechar={() => setCadastroAberto(false)}
         onAbrirLogin={abrirLogin}
-      />
+      />}
 
-      <LoginModal
+      {loginAberto && <LoginModal
         aberto={loginAberto}
         onFechar={() => setLoginAberto(false)}
         onAbrirCadastro={abrirCadastro}
-      />
+      />}
     </>
   );
 }

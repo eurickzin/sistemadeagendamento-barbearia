@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import Icon from "@/app/components/Icon";
+import Icon from "@/components/ui/Icon";
 
 interface Servico {
   nome: string;

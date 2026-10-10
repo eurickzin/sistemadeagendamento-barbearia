@@ -1,7 +1,8 @@
 import Link from "next/link";
 
-import CadastroButton from "@/app/components/CadastroButton";
-import Reveal from "@/app/components/Reveal";
+import CadastroButton from "@/components/auth/CadastroButton";
+import LandingNavigation from "@/components/navigation/LandingNavigation";
+import Reveal from "@/components/ui/Reveal";
 
 const features = [
   {
@@ -103,8 +104,8 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-[#0B0F14] text-white">
       {/* NAVBAR */}
-      <header className="fixed left-0 top-0 z-50 w-full border-b border-white/10 bg-[#0B0F14]/90 backdrop-blur-sm sm:backdrop-blur-xl">
-        <nav className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-5">
+      <header data-landing-header className="pointer-events-auto fixed left-0 top-0 z-50 w-full border-b border-white/10 bg-[#0B0F14]/90 backdrop-blur-sm sm:backdrop-blur-xl">
+        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-5">
           <Reveal direction="left">
             <Link
               href="#inicio"
@@ -115,52 +116,13 @@ export default function Home() {
             </Link>
           </Reveal>
 
-          <div className="hidden items-center gap-8 md:flex">
-            <Reveal direction="up" delay={25}>
-              <a
-                href="#planos"
-                className="group relative text-sm text-zinc-400 transition hover:text-white"
-              >
-                Planos
-                <span className="absolute -bottom-2 left-0 h-[2px] w-0 bg-[#C9A227] transition-all duration-300 group-hover:w-full" />
-              </a>
-            </Reveal>
-            <Reveal direction="up" delay={50}>
-              <a
-                href="#funcionalidades"
-                className="group relative text-sm text-zinc-400 transition hover:text-white"
-              >
-                Funcionalidades
-                <span className="absolute -bottom-2 left-0 h-[2px] w-0 bg-[#C9A227] transition-all duration-300 group-hover:w-full" />
-              </a>
-            </Reveal>
-
-            <Reveal direction="up" delay={100}>
-              <a
-                href="#como-funciona"
-                className="group relative text-sm text-zinc-400 transition hover:text-white"
-              >
-                Como funciona
-                <span className="absolute -bottom-2 left-0 h-[2px] w-0 bg-[#C9A227] transition-all duration-300 group-hover:w-full" />
-              </a>
-            </Reveal>
-
-            <Reveal direction="up" delay={150}>
-              <a
-                href="#beneficios"
-                className="group relative text-sm text-zinc-400 transition hover:text-white"
-              >
-                Benefícios
-                <span className="absolute -bottom-2 left-0 h-[2px] w-0 bg-[#C9A227] transition-all duration-300 group-hover:w-full" />
-              </a>
-            </Reveal>
-          </div>
+          <LandingNavigation />
 
           {/* NÃO ENVOLVER O BOTÃO COM REVEAL */}
-<div className="flex items-center gap-3">
+<div className="order-1 flex items-center gap-3 lg:order-3">
   <Link
     href="/painel/login"
-    className="whitespace-nowrap border border-white/10 px-2.5 py-2.5 text-xs font-medium text-zinc-300 transition hover:border-[#C9A227]/30 hover:bg-white/5 hover:text-white sm:px-4 sm:text-sm"
+    className="theme-dark-action whitespace-nowrap border border-white/10 px-2.5 py-2.5 text-xs font-medium text-zinc-300 transition hover:border-[#C9A227]/30 hover:bg-white/5 hover:text-white sm:px-4 sm:text-sm"
   >
     <span className="sm:hidden">Painel</span>
     <span className="hidden sm:inline">Sou barbeiro</span>
@@ -168,7 +130,7 @@ export default function Home() {
 
   <CadastroButton />
 </div>
-        </nav>
+        </div>
       </header>
 
       {/* HERO */}
@@ -205,7 +167,7 @@ export default function Home() {
   <Reveal direction="up" delay={200}>
     <Link
       href="/barbearias"
-      className="inline-flex items-center justify-center gap-2 rounded-md bg-[#C9A227] px-7 py-4 font-semibold text-[#0B0F14] transition hover:-translate-y-[1px] hover:bg-[#E0BB35]"
+      className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-[#C9A227] px-7 py-4 font-semibold text-[#0B0F14] transition hover:-translate-y-[1px] hover:bg-[#E0BB35] sm:w-auto"
     >
       Procurar barbearias
       <span aria-hidden="true">→</span>
@@ -215,7 +177,7 @@ export default function Home() {
   <Reveal direction="up" delay={300}>
     <a
       href="#funcionalidades"
-      className="inline-flex items-center justify-center rounded-md border border-white/15 px-7 py-4 text-center font-semibold text-white transition hover:-translate-y-[1px] hover:border-white/25 hover:bg-white/5"
+      className="theme-dark-action inline-flex w-full items-center justify-center rounded-md border border-white/15 px-7 py-4 text-center font-semibold text-white transition hover:-translate-y-[1px] hover:border-white/25 hover:bg-white/5 sm:w-auto"
     >
       Conhecer o sistema
     </a>

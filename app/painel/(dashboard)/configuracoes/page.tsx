@@ -2,7 +2,7 @@
 
 import { ChangeEvent, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import Icon from "@/app/components/Icon";
+import Icon from "@/components/ui/Icon";
 import { uploadProfileImage } from "@/lib/profile-images";
 
 interface Barbearia {
