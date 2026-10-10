@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import Icon from "@/app/components/Icon";
 
 export default function CadastrarBarbearia() {
   const router = useRouter();
@@ -119,13 +120,13 @@ export default function CadastrarBarbearia() {
   }
 
   return (
-    <main className="min-h-screen bg-[#0B0F14] px-6 py-10 text-white">
+    <main className="min-h-screen bg-[#0B0F14] px-4 py-6 text-white sm:px-6 sm:py-10">
       <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-xl items-center justify-center">
         <div className="w-full">
 
           <div className="mb-8 text-center">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#C9A227]/10 text-3xl">
-              💈
+              <Icon name="barber" className="h-8 w-8" />
             </div>
 
             <p className="mt-6 text-xs font-semibold uppercase tracking-[0.25em] text-[#C9A227]">
@@ -144,7 +145,7 @@ export default function CadastrarBarbearia() {
 
           <form
             onSubmit={cadastrar}
-            className="rounded-3xl border border-white/10 bg-white/[0.02] p-6 shadow-2xl sm:p-8"
+            className="border border-white/10 bg-white/[0.02] p-4 sm:p-8"
           >
             <div className="space-y-5">
 

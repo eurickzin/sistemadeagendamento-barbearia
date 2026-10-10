@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import Icon from "@/app/components/Icon";
 
 interface Barbearia {
   id: string;
@@ -249,7 +250,7 @@ if (!barbearia) {
         </p>
 
         <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">
-          Olá, barbeiro 👋
+          Olá, barbeiro <Icon name="wave" className="ml-1 inline h-5 w-5 align-[-3px]" />
         </h1>
 
         <p className="mt-1 text-sm text-zinc-500">
@@ -315,7 +316,7 @@ if (!barbearia) {
             </p>
 
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#C9A227]/10 text-[#C9A227]">
-              📅
+              <Icon name="calendar" />
             </span>
           </div>
 
@@ -335,7 +336,7 @@ if (!barbearia) {
             </p>
 
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-yellow-500/10 text-yellow-400">
-              ⏳
+              <Icon name="hourglass" />
             </span>
           </div>
 
@@ -428,7 +429,7 @@ if (!barbearia) {
             <div className="p-10 text-center">
 
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#C9A227]/10 text-2xl">
-                📅
+                <Icon name="calendar" />
               </div>
 
               <h3 className="mt-5 font-semibold">
@@ -455,7 +456,7 @@ if (!barbearia) {
                     <div className="flex items-center gap-4">
 
                       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#C9A227]/10 text-[#C9A227]">
-                        ✂
+                        <Icon name="scissors" />
                       </div>
 
                       <div>

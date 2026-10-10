@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import Icon from "@/app/components/Icon";
 
 interface Barbearia {
   id: string;
@@ -70,7 +71,7 @@ export default function DashboardLayout({
       ? "Agenda"
       : estaNasConfiguracoes
         ? "Configurações"
-        : "Olá, barbeiro 👋";
+        : <>Olá, barbeiro <Icon name="wave" className="inline h-4 w-4 align-[-2px]" /></>;
 
   const secaoAtual = estaNosServicos
     ? "Serviços"
@@ -96,7 +97,7 @@ export default function DashboardLayout({
     }`;
 
   const classeLinkMobile = (ativo: boolean) =>
-    `whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition ${
+    `whitespace-nowrap px-3 py-2.5 text-sm font-medium transition ${
       ativo
         ? "bg-[#C9A227]/10 text-[#C9A227]"
         : "text-zinc-500 hover:bg-white/5 hover:text-white"
@@ -156,7 +157,7 @@ export default function DashboardLayout({
                 disabled
                 className="flex w-full cursor-not-allowed items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium text-zinc-600"
               >
-                <span className="text-lg">♙</span>
+                <Icon name="user" className="h-5 w-5" />
                 Clientes
               </button>
 
@@ -164,7 +165,7 @@ export default function DashboardLayout({
                 href="/painel/servicos"
                 className={classeLink(estaNosServicos)}
               >
-                <span className="text-lg">✂</span>
+                <Icon name="scissors" className="h-5 w-5" />
                 Serviços
               </Link>
 
@@ -188,7 +189,7 @@ export default function DashboardLayout({
                 href="/painel/configuracoes"
                 className={classeLink(estaNasConfiguracoes)}
               >
-                <span className="text-lg">⚙</span>
+                <Icon name="settings" className="h-5 w-5" />
                 Configurações
               </Link>
 
@@ -196,7 +197,7 @@ export default function DashboardLayout({
                 href="/"
                 className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-zinc-500 transition hover:bg-white/5 hover:text-white"
               >
-                <span className="text-lg">↗</span>
+                <Icon name="externalLink" className="h-5 w-5" />
                 Minha página
               </Link>
             </div>
@@ -208,7 +209,7 @@ export default function DashboardLayout({
               onClick={sair}
               className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-zinc-500 transition hover:bg-red-500/10 hover:text-red-400"
             >
-              <span className="text-lg">↪</span>
+              <Icon name="logout" className="h-5 w-5" />
               Sair
             </button>
           </div>
@@ -217,17 +218,17 @@ export default function DashboardLayout({
         {/* CONTEÚDO */}
         <div className="min-w-0 flex-1">
           {/* HEADER */}
-          <header className="sticky top-0 z-20 border-b border-white/10 bg-[#0B0F14]/80 backdrop-blur-xl">
-            <div className="flex h-20 items-center justify-between px-6 lg:px-10">
+          <header className="sticky top-0 z-20 border-b border-white/10 bg-[#0B0F14]/90 backdrop-blur-sm sm:backdrop-blur-xl">
+            <div className="flex min-h-16 items-center justify-between gap-3 px-4 py-2 sm:h-20 sm:px-6 lg:px-10">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#C9A227]">
                   {secaoAtual}
                 </p>
 
-                <h1 className="mt-1 text-xl font-bold">{tituloPagina}</h1>
+                <h1 className="mt-1 text-lg font-bold sm:text-xl">{tituloPagina}</h1>
               </div>
 
-              <div className="flex items-center gap-5">
+              <div className="flex shrink-0 items-center gap-3 sm:gap-5">
                 <div className="hidden text-right sm:block">
                   <p className="text-sm font-semibold text-white">
                     {barbearia?.nome || "Na Régua+"}
@@ -244,14 +245,14 @@ export default function DashboardLayout({
                 </div>
 
                 <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5">
-                  <span className="text-lg">🔔</span>
+                  <Icon name="bell" className="h-5 w-5" />
                 </div>
               </div>
             </div>
           </header>
 
           {/* MENU MOBILE */}
-          <div className="border-b border-white/10 px-4 py-3 lg:hidden">
+          <div className="mobile-nav border-b border-white/10 px-4 py-2 lg:hidden">
             <div className="flex gap-2 overflow-x-auto">
               <Link
                 href="/painel"
@@ -280,11 +281,19 @@ export default function DashboardLayout({
               >
                 Configurações
               </Link>
+
+              <button
+                type="button"
+                onClick={sair}
+                className="whitespace-nowrap border border-red-500/20 px-3 py-2.5 text-sm font-medium text-red-400"
+              >
+                Sair
+              </button>
             </div>
           </div>
 
           {/* PÁGINA */}
-          <div className="px-6 py-8 lg:px-10 lg:py-10">
+          <div className="min-w-0 px-4 py-6 sm:px-6 sm:py-8 lg:px-10 lg:py-10">
             {children}
           </div>
         </div>

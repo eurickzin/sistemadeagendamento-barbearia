@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { ChangeEvent, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import AgendamentoModal from "@/app/components/AgendamentoModal";
+import Icon from "@/app/components/Icon";
+import { uploadProfileImage } from "@/lib/profile-images";
 
 interface Agendamento {
   id: number;
@@ -24,6 +26,11 @@ export default function MinhaContaPage() {
 
   const [email, setEmail] = useState("");
   const [nome, setNome] = useState("");
+  const [telefone, setTelefone] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [perfilSalvando, setPerfilSalvando] = useState(false);
+  const [perfilMensagem, setPerfilMensagem] = useState("");
+  const [perfilErro, setPerfilErro] = useState("");
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [agendamentoAberto, setAgendamentoAberto] = useState(false);
@@ -52,6 +59,8 @@ export default function MinhaContaPage() {
       user.user_metadata?.nome || user.user_metadata?.name || "";
 
     setNome(nomeUsuario);
+    setTelefone(user.user_metadata?.telefone ?? "");
+    setAvatarUrl(user.user_metadata?.avatar_url ?? "");
 
     const { data, error } = await supabase
       .from("agendamentos")
@@ -89,6 +98,45 @@ export default function MinhaContaPage() {
   useEffect(() => {
     carregarDados();
   }, []);
+
+  async function salvarPerfil() {
+    const supabase = createClient();
+    setPerfilSalvando(true);
+    setPerfilErro("");
+    setPerfilMensagem("");
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) throw new Error("Faça login novamente para editar seu perfil.");
+      const { error: profileError } = await supabase.from("profiles").upsert(
+        { id: user.id, nome: nome.trim(), telefone: telefone.trim() },
+        { onConflict: "id" },
+      );
+      if (profileError) throw new Error("Não foi possível atualizar seu perfil. Confira as permissões do Supabase.");
+      const { error } = await supabase.auth.updateUser({
+        data: { nome: nome.trim(), telefone: telefone.trim(), avatar_url: avatarUrl },
+      });
+      if (error) throw new Error("Não foi possível salvar os dados da conta.");
+      setPerfilMensagem("Perfil atualizado com sucesso.");
+    } catch (saveError) {
+      setPerfilErro(saveError instanceof Error ? saveError.message : "Erro ao salvar perfil.");
+    } finally {
+      setPerfilSalvando(false);
+    }
+  }
+
+  async function enviarAvatar(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    setPerfilErro("");
+    try {
+      const { data: { user } } = await createClient().auth.getUser();
+      if (!user) throw new Error("Faça login novamente para enviar sua foto.");
+      setAvatarUrl(await uploadProfileImage(file, user.id, "avatar"));
+    } catch (uploadError) {
+      setPerfilErro(uploadError instanceof Error ? uploadError.message : "Não foi possível enviar a foto.");
+    }
+  }
 
   // =========================
   // RECARREGAR AGENDAMENTOS
@@ -392,7 +440,7 @@ export default function MinhaContaPage() {
   // =========================
 
   return (
-    <main className="min-h-screen bg-[#0B0F14] px-4 py-6 text-white sm:px-6 lg:px-8 lg:py-10">
+    <main className="min-h-screen bg-[#0B0F14] px-4 py-5 text-white sm:px-6 sm:py-6 lg:px-8 lg:py-10">
       <div className="mx-auto max-w-6xl">
         {/* HEADER */}
         <header className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
@@ -402,7 +450,7 @@ export default function MinhaContaPage() {
             </p>
 
             <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">
-              Olá{nome ? `, ${nome}` : ""} 👋
+              Olá{nome ? `, ${nome}` : ""} <Icon name="wave" className="ml-1 inline h-5 w-5 align-[-3px]" />
             </h1>
 
             <p className="mt-2 text-sm text-zinc-500">
@@ -420,7 +468,7 @@ export default function MinhaContaPage() {
         </header>
 
         {/* RESUMO */}
-        <section className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <section className="mb-8 grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
           {/* PRÓXIMO */}
           <div className="rounded-2xl border border-[#C9A227]/20 bg-[#C9A227]/[0.04] p-5">
             <div className="flex items-center justify-between">
@@ -429,7 +477,7 @@ export default function MinhaContaPage() {
               </p>
 
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#C9A227]/10 text-[#C9A227]">
-                📅
+                <Icon name="calendar" />
               </div>
             </div>
 
@@ -458,7 +506,7 @@ export default function MinhaContaPage() {
               </p>
 
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/5 text-zinc-400">
-                ✂
+                <Icon name="scissors" />
               </div>
             </div>
 
@@ -512,7 +560,7 @@ export default function MinhaContaPage() {
           </div>
 
           {proximoAgendamento ? (
-            <div className="overflow-hidden rounded-2xl border border-[#C9A227]/20 bg-white/[0.02]">
+            <div className="overflow-hidden border border-[#C9A227]/20 bg-white/[0.02]">
               <div className="h-1 w-full bg-[#C9A227]" />
 
               <div className="p-5 sm:p-7">
@@ -520,7 +568,7 @@ export default function MinhaContaPage() {
                   {/* SERVIÇO */}
                   <div className="flex items-start gap-4">
                     <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#C9A227]/10 text-2xl">
-                      ✂️
+                      <Icon name="scissors" />
                     </div>
 
                     <div>
@@ -545,7 +593,7 @@ export default function MinhaContaPage() {
                   </div>
 
                   {/* DATA/HORA */}
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:min-w-[420px]">
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:min-w-[420px]">
                     <div className="rounded-xl border border-white/5 bg-black/20 p-4">
                       <p className="text-[11px] uppercase tracking-wider text-zinc-600">
                         Data
@@ -615,7 +663,7 @@ export default function MinhaContaPage() {
           ) : (
             <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-10 text-center">
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#C9A227]/10 text-2xl">
-                📅
+                <Icon name="calendar" />
               </div>
 
               <h3 className="mt-5 font-semibold text-white">
@@ -673,7 +721,7 @@ export default function MinhaContaPage() {
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex items-center gap-4">
                         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/5">
-                          ✂️
+                          <Icon name="scissors" />
                         </div>
 
                         <div>
@@ -805,12 +853,11 @@ export default function MinhaContaPage() {
         </section>
 
         {/* PERFIL */}
-        <section className="mt-12 rounded-2xl border border-white/10 bg-white/[0.02] p-5 sm:p-6">
+        <section className="mt-12 border border-white/10 bg-white/[0.02] p-5 sm:p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#C9A227]/10 text-lg font-bold text-[#C9A227]">
-              {(nome || email || "U").charAt(0).toUpperCase()}
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden bg-[#C9A227]/10 text-xl font-bold text-[#C9A227]">
+              {avatarUrl ? <img src={avatarUrl} alt="Foto do perfil" className="h-full w-full object-cover" /> : (nome || email || "U").charAt(0).toUpperCase()}
             </div>
-
             <div className="min-w-0">
               <p className="text-xs font-medium uppercase tracking-wider text-zinc-600">
                 Conta
@@ -823,6 +870,16 @@ export default function MinhaContaPage() {
               <p className="mt-1 truncate text-sm text-zinc-500">{email}</p>
             </div>
           </div>
+          <div className="mt-6 grid gap-4 sm:grid-cols-2">
+            <label className="text-sm text-zinc-400">Nome<input value={nome} onChange={(e) => setNome(e.target.value)} autoComplete="name" className="mt-2 w-full border border-white/10 bg-[#0B0F14] px-3 py-3 text-white" /></label>
+            <label className="text-sm text-zinc-400">Telefone<input value={telefone} onChange={(e) => setTelefone(e.target.value)} autoComplete="tel" inputMode="tel" className="mt-2 w-full border border-white/10 bg-[#0B0F14] px-3 py-3 text-white" /></label>
+          </div>
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <label className="cursor-pointer border border-white/15 px-4 py-3 text-sm text-zinc-200">Escolher foto de perfil<input type="file" accept="image/png,image/jpeg,image/webp" onChange={enviarAvatar} className="sr-only" /></label>
+            <button type="button" onClick={salvarPerfil} disabled={perfilSalvando} className="bg-[#C9A227] px-5 py-3 text-sm font-semibold text-black disabled:opacity-50">{perfilSalvando ? "Salvando..." : "Salvar perfil"}</button>
+          </div>
+          {perfilErro && <p role="alert" className="mt-3 text-sm text-red-400">{perfilErro}</p>}
+          {perfilMensagem && <p role="status" className="mt-3 text-sm text-emerald-400">{perfilMensagem}</p>}
         </section>
       </div>
 

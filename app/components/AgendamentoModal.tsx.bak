@@ -3,7 +3,6 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
-import Icon from "@/app/components/Icon";
 
 interface Servico {
   id: number;
@@ -25,7 +24,6 @@ interface AgendamentoModalProps {
   onFechar: () => void;
   onAgendamentoCriado: () => Promise<void>;
   barbeariaId?: string;
-  barbeariaNome?: string;
   servicoInicialId?: number | null;
 }
 
@@ -85,7 +83,6 @@ export default function AgendamentoModal({
   onFechar,
   onAgendamentoCriado,
   barbeariaId,
-  barbeariaNome,
   servicoInicialId = null,
 }: AgendamentoModalProps) {
   const [servicos, setServicos] = useState<Servico[]>([]);
@@ -102,8 +99,6 @@ export default function AgendamentoModal({
   const [horarioSelecionado, setHorarioSelecionado] = useState("");
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
   const [diaFolga, setDiaFolga] = useState<string | null>(null);
-  const [horarioAbertura, setHorarioAbertura] = useState("08:00");
-  const [horarioFechamento, setHorarioFechamento] = useState("21:00");
 
   const [carregandoServicos, setCarregandoServicos] = useState(false);
   const [carregandoHorarios, setCarregandoHorarios] = useState(false);
@@ -116,15 +111,6 @@ export default function AgendamentoModal({
   const [senhaLogin, setSenhaLogin] = useState("");
   const [erroLogin, setErroLogin] = useState("");
   const [carregandoLogin, setCarregandoLogin] = useState(false);
-
-  const [mostrarCadastro, setMostrarCadastro] = useState(false);
-const [nomeCadastro, setNomeCadastro] = useState("");
-const [telefoneCadastro, setTelefoneCadastro] = useState("");
-const [emailCadastro, setEmailCadastro] = useState("");
-const [senhaCadastro, setSenhaCadastro] = useState("");
-const [erroCadastro, setErroCadastro] = useState("");
-const [sucessoCadastro, setSucessoCadastro] = useState(false);
-const [carregandoCadastro, setCarregandoCadastro] = useState(false);
 
   const servicoSelecionado = servicos.find(
     (servico) => servico.id === servicoSelecionadoId
@@ -233,23 +219,14 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
         servicoInicialExiste ? servicoInicialId! : null
       );
 
-      let { data: dadosBarbearia, error: erroBarbearia } = await supabase
+      const {
+        data: dadosBarbearia,
+        error: erroBarbearia,
+      } = await supabase
         .from("barbearias")
-        .select("dia_folga, horario_abertura, horario_fechamento")
+        .select("dia_folga")
         .eq("id", barbeariaId!)
         .maybeSingle();
-
-      if (erroBarbearia) {
-        const resultadoBasico = await supabase
-          .from("barbearias")
-          .select("dia_folga")
-          .eq("id", barbeariaId!)
-          .maybeSingle();
-        dadosBarbearia = resultadoBasico.data
-          ? { ...resultadoBasico.data, horario_abertura: "08:00", horario_fechamento: "21:00" }
-          : null;
-        erroBarbearia = resultadoBasico.error;
-      }
 
       if (cancelado) return;
 
@@ -262,8 +239,6 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
           ? null
           : String(dadosBarbearia.dia_folga)
       );
-      setHorarioAbertura(dadosBarbearia?.horario_abertura?.slice(0, 5) ?? "08:00");
-      setHorarioFechamento(dadosBarbearia?.horario_fechamento?.slice(0, 5) ?? "21:00");
 
       setCarregandoServicos(false);
     }
@@ -381,7 +356,7 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
       if (inicioNovo <= minutosAgora) return false;
     }
 
-    if (fimNovo > minutosDoHorario(horarioFechamento)) return false;
+    if (fimNovo > 21 * 60) return false;
 
     return !agendamentos.some((agendamento) => {
       const inicioExistente = minutosDoHorario(agendamento.horario);
@@ -402,7 +377,7 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
 
   const horarios: string[] = [];
 
-  for (let minutos = minutosDoHorario(horarioAbertura); minutos < minutosDoHorario(horarioFechamento); minutos += 30) {
+  for (let minutos = 8 * 60; minutos < 21 * 60; minutos += 30) {
     const horas = String(Math.floor(minutos / 60)).padStart(2, "0");
     const mins = String(minutos % 60).padStart(2, "0");
 
@@ -446,66 +421,6 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
     }
   }
 
-  async function cadastrarParaAgendar(
-    event: FormEvent<HTMLFormElement>
-  ) {
-    event.preventDefault();
-
-    setErroCadastro("");
-    setSucessoCadastro(false);
-    setCarregandoCadastro(true);
-
-    try {
-      const parametros = new URLSearchParams();
-
-      if (servicoSelecionadoId !== null) {
-        parametros.set("servico", String(servicoSelecionadoId));
-      }
-
-      if (dataSelecionada) {
-        parametros.set("data", dataSelecionada);
-      }
-
-      if (horarioSelecionado) {
-        parametros.set("horario", horarioSelecionado);
-      }
-
-      const caminho = window.location.pathname;
-      const query = parametros.toString();
-      const destino = query ? `${caminho}?${query}` : caminho;
-
-      const { data, error } = await supabase.auth.signUp({
-        email: emailCadastro.trim(),
-        password: senhaCadastro,
-        options: {
-          data: {
-            nome: nomeCadastro.trim(),
-            telefone: telefoneCadastro.trim(),
-          },
-          emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(destino)}`,
-        },
-      });
-
-      if (error) {
-        setErroCadastro(
-          error.message.includes("already registered")
-            ? "Este e-mail já possui cadastro. Entre na sua conta."
-            : "Não foi possível criar a conta. Confira os dados e tente novamente."
-        );
-        return;
-      }
-
-      // Com a confirmação de e-mail habilitada, não criamos
-      // o agendamento nesta etapa.
-      setSucessoCadastro(true);
-    } catch (error) {
-      console.error(error);
-      setErroCadastro("Ocorreu um erro ao criar sua conta.");
-    } finally {
-      setCarregandoCadastro(false);
-    }
-  }
-
   async function confirmarAgendamento() {
     setErro("");
 
@@ -544,16 +459,6 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
 
       if (erroUsuario || !user) {
         setMostrarLogin(true);
-        setMostrarCadastro(false);
-        return;
-      }
-
-      if (!user.email_confirmed_at) {
-        setMostrarLogin(true);
-        setMostrarCadastro(false);
-        setErroLogin(
-          "Confirme seu e-mail antes de realizar um agendamento. Verifique sua caixa de entrada."
-        );
         return;
       }
 
@@ -640,14 +545,14 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-stretch justify-center overflow-y-auto bg-black/80 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/80 p-4 backdrop-blur-sm"
       onClick={onFechar}
     >
       <section
         role="dialog"
         aria-modal="true"
         aria-labelledby="titulo-agendamento"
-        className="my-auto min-h-full w-full max-w-xl overflow-y-auto border border-[#C9A227]/20 bg-[#0B0F14] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] text-white sm:min-h-0 sm:max-h-[90vh] sm:p-6"
+        className="my-auto max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl border border-[#C9A227]/20 bg-[#0B0F14] p-5 text-white shadow-2xl sm:p-6"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mb-6 flex items-center justify-between gap-4">
@@ -662,13 +567,9 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
             >
               {sucesso
                 ? "Agendamento confirmado!"
-                : sucessoCadastro
-                  ? "Confira seu e-mail"
-                  : mostrarCadastro
-                    ? "Criar sua conta"
-                    : mostrarLogin
-                      ? "Entre na sua conta"
-                      : "Agendar horário"}
+                : mostrarLogin
+                  ? "Entre na sua conta"
+                  : "Agendar horário"}
             </h2>
           </div>
 
@@ -683,223 +584,39 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
         </div>
 
         {sucesso ? (
-          <div className="relative overflow-hidden border border-[#C9A227]/30 bg-gradient-to-b from-[#C9A227]/10 via-[#11151B] to-[#0B0F14] px-4 py-7 text-center sm:px-8 sm:py-9">
-            <div className="absolute inset-x-0 top-0 h-1 bg-[#C9A227]" />
-
-            <div className="mx-auto flex h-16 w-16 items-center justify-center border border-[#C9A227]/50 bg-[#C9A227]/15 text-[#E0BB35] shadow-[0_0_36px_rgba(201,162,39,0.16)]">
-              <Icon name="check" className="h-9 w-9" />
+          <div className="py-8 text-center">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-[#C9A227]/30 bg-[#C9A227]/10 text-4xl text-[#C9A227]">
+              ✓
             </div>
 
-            <p className="mt-6 text-xs font-bold uppercase tracking-[0.24em] text-[#E0BB35]">
-              Na Régua+ · Reserva confirmada
-            </p>
-            <h3 className="mt-3 text-2xl font-black tracking-tight text-white sm:text-3xl">
-              Seu horário está reservado.
-            </h3>
-            <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-zinc-400">
-              {barbeariaNome
-                ? `${barbeariaNome} já recebeu seu agendamento.`
-                : "Seu agendamento foi confirmado com sucesso."}
+            <p className="mt-5 text-lg font-semibold">
+              Seu horário foi reservado!
             </p>
 
-            <div className="mt-7 grid border border-white/10 bg-[#090D12] text-left sm:grid-cols-3">
-              <div className="border-b border-white/10 p-4 sm:border-b-0 sm:border-r">
-                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500">Serviço</p>
-                <p className="mt-2 break-words font-semibold text-white">{servicoSelecionado?.nome ?? "Agendamento"}</p>
-              </div>
-              <div className="border-b border-white/10 p-4 sm:border-b-0 sm:border-r">
-                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500">Data</p>
-                <p className="mt-2 capitalize font-semibold text-white">{formatarData(dataSelecionada)}</p>
-              </div>
-              <div className="p-4">
-                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500">Horário</p>
-                <p className="mt-2 text-xl font-bold text-[#E0BB35]">{horarioSelecionado}</p>
-              </div>
+            <p className="mt-2 text-sm text-zinc-400">
+              Consulte os detalhes na sua conta.
+            </p>
+
+            <div className="mt-5 rounded-xl border border-white/10 bg-[#11151B] p-4 text-left">
+              <p className="font-semibold">
+                {servicoSelecionado?.nome}
+              </p>
+              <p className="mt-1 text-sm text-zinc-400">
+                {formatarData(dataSelecionada)}
+              </p>
+              <p className="mt-1 text-sm text-zinc-400">
+                Horário: {horarioSelecionado}
+              </p>
             </div>
 
-            <p className="mt-5 text-xs leading-5 text-zinc-500">
-              Consulte ou gerencie seu horário na área do cliente.
-            </p>
             <button
               type="button"
               onClick={onFechar}
-              className="mt-6 min-h-12 w-full bg-[#C9A227] px-6 py-3 font-bold text-[#0B0F14] transition hover:bg-[#E0BB35]"
+              className="mt-6 w-full rounded-xl bg-[#C9A227] px-6 py-3 font-bold text-black transition hover:bg-[#E0BB35]"
             >
               Concluir
             </button>
           </div>
-        ) : sucessoCadastro ? (
-          <div className="space-y-5">
-            <div className="rounded-xl border border-[#C9A227]/20 bg-[#C9A227]/5 p-5">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-[#C9A227]/30 bg-[#C9A227]/10 text-3xl text-[#C9A227]">
-                <Icon name="mail" className="h-7 w-7" />
-              </div>
-
-              <h3 className="mt-4 text-center text-lg font-semibold">
-                Conta criada!
-              </h3>
-
-              <p className="mt-3 text-center text-sm leading-6 text-zinc-300">
-                Enviamos um link de confirmação para{" "}
-                <strong className="break-all text-[#E0BB35]">
-                  {emailCadastro}
-                </strong>.
-                Abra o e-mail e clique no link para confirmar seu endereço.
-              </p>
-
-              <p className="mt-3 text-center text-sm leading-6 text-zinc-400">
-                Seu horário ainda não está reservado. Depois de confirmar
-                o e-mail, volte à barbearia, entre na sua conta e finalize
-                o agendamento.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                setSucessoCadastro(false);
-                setMostrarCadastro(false);
-                setMostrarLogin(true);
-                setEmailLogin(emailCadastro);
-                setErroLogin("");
-              }}
-              className="w-full rounded-xl bg-[#C9A227] px-6 py-3 font-bold text-black transition hover:bg-[#E0BB35]"
-            >
-              Voltar para entrar
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setSucessoCadastro(false);
-                setMostrarCadastro(false);
-                setErroCadastro("");
-              }}
-              className="w-full rounded-xl border border-white/10 px-6 py-3 text-sm text-zinc-300 transition hover:border-[#C9A227] hover:text-white"
-            >
-              Voltar ao agendamento
-            </button>
-          </div>
-        ) : mostrarCadastro ? (
-          <form onSubmit={cadastrarParaAgendar} className="space-y-5">
-            <div className="rounded-xl border border-[#C9A227]/20 bg-[#C9A227]/5 p-4">
-              <p className="text-sm leading-6 text-zinc-300">
-                Crie sua conta para continuar. Você precisará confirmar
-                seu e-mail antes de reservar o horário.
-              </p>
-
-              {servicoSelecionado && (
-                <p className="mt-3 text-sm font-semibold text-[#C9A227]">
-                  {servicoSelecionado.nome} · {dataSelecionada} ·{" "}
-                  {horarioSelecionado || "--:--"}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label htmlFor="cadastro-nome" className="mb-2 block text-sm font-medium text-zinc-300">
-                Nome completo
-              </label>
-              <input
-                id="cadastro-nome"
-                type="text"
-                autoComplete="name"
-                required
-                maxLength={100}
-                value={nomeCadastro}
-                onChange={(event) => setNomeCadastro(event.target.value)}
-                placeholder="Seu nome"
-                className="w-full rounded-xl border border-white/10 bg-[#11151B] p-3 text-white outline-none transition placeholder:text-zinc-600 focus:border-[#C9A227]"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="cadastro-telefone" className="mb-2 block text-sm font-medium text-zinc-300">
-                Telefone
-              </label>
-              <input
-                id="cadastro-telefone"
-                type="tel"
-                autoComplete="tel"
-                required
-                maxLength={20}
-                value={telefoneCadastro}
-                onChange={(event) => setTelefoneCadastro(event.target.value)}
-                placeholder="(00) 00000-0000"
-                className="w-full rounded-xl border border-white/10 bg-[#11151B] p-3 text-white outline-none transition placeholder:text-zinc-600 focus:border-[#C9A227]"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="cadastro-email" className="mb-2 block text-sm font-medium text-zinc-300">
-                E-mail
-              </label>
-              <input
-                id="cadastro-email"
-                type="email"
-                autoComplete="email"
-                required
-                value={emailCadastro}
-                onChange={(event) => setEmailCadastro(event.target.value)}
-                placeholder="seu@email.com"
-                className="w-full rounded-xl border border-white/10 bg-[#11151B] p-3 text-white outline-none transition placeholder:text-zinc-600 focus:border-[#C9A227]"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="cadastro-senha" className="mb-2 block text-sm font-medium text-zinc-300">
-                Senha
-              </label>
-              <input
-                id="cadastro-senha"
-                type="password"
-                autoComplete="new-password"
-                required
-                minLength={6}
-                value={senhaCadastro}
-                onChange={(event) => setSenhaCadastro(event.target.value)}
-                placeholder="Mínimo de 6 caracteres"
-                className="w-full rounded-xl border border-white/10 bg-[#11151B] p-3 text-white outline-none transition placeholder:text-zinc-600 focus:border-[#C9A227]"
-              />
-            </div>
-
-            {erroCadastro && (
-              <p role="alert" className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">
-                {erroCadastro}
-              </p>
-            )}
-
-            <button
-              type="submit"
-              disabled={carregandoCadastro}
-              className="w-full rounded-xl bg-[#C9A227] px-6 py-3 font-bold text-black transition hover:bg-[#E0BB35] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {carregandoCadastro ? "Criando conta..." : "Criar conta e confirmar e-mail"}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setMostrarCadastro(false);
-                setErroCadastro("");
-                setMostrarLogin(true);
-              }}
-              className="w-full rounded-xl border border-white/10 px-6 py-3 text-sm text-zinc-300 transition hover:border-[#C9A227] hover:text-white"
-            >
-              Já tenho conta — entrar
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setMostrarCadastro(false);
-                setErroCadastro("");
-              }}
-              className="w-full text-sm text-zinc-500 transition hover:text-white"
-            >
-              Voltar ao agendamento
-            </button>
-          </form>
         ) : mostrarLogin ? (
           <form onSubmit={entrarParaAgendar} className="space-y-5">
             <div className="rounded-xl border border-[#C9A227]/20 bg-[#C9A227]/5 p-4">
@@ -984,18 +701,10 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
               Voltar ao agendamento
             </button>
 
-            <button
-              type="button"
-              onClick={() => {
-                setMostrarLogin(false);
-                setMostrarCadastro(true);
-                setErroCadastro("");
-                setEmailCadastro(emailLogin);
-              }}
-              className="w-full rounded-xl border border-[#C9A227]/30 px-6 py-3 text-sm text-[#E0BB35] transition hover:bg-[#C9A227]/10"
-            >
-              Ainda não tenho conta — cadastrar
-            </button>
+            <p className="text-center text-xs leading-5 text-zinc-500">
+              Ainda não tem conta? Feche esta janela e utilize a opção
+              de cadastro disponível no site.
+            </p>
           </form>
         ) : carregandoServicos ? (
           <p className="py-8 text-center text-zinc-400">

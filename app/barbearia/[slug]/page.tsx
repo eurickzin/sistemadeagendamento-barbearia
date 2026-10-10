@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import AgendamentoModal from "../../components/AgendamentoModal";
+import Icon from "@/app/components/Icon";
 
 
 interface Barbearia {
@@ -14,6 +15,11 @@ interface Barbearia {
   telefone: string | null;
   descricao: string | null;
   logo_url: string | null;
+  capa_url: string | null;
+  instagram: string | null;
+  endereco: string | null;
+  horario_abertura: string;
+  horario_fechamento: string;
   ativa: boolean;
 }
 
@@ -35,6 +41,7 @@ export default function PaginaPublicaBarbearia() {
   const [barbearia, setBarbearia] = useState<Barbearia | null>(null);
   const [servicos, setServicos] = useState<Servico[]>([]);
   const [carregando, setCarregando] = useState(true);
+  const [carregandoServicos, setCarregandoServicos] = useState(true);
   const [erro, setErro] = useState("");
   const [modalAgendamentoAberto, setModalAgendamentoAberto] =
     useState(false);
@@ -49,16 +56,35 @@ export default function PaginaPublicaBarbearia() {
       setErro("");
       setBarbearia(null);
       setServicos([]);
+      setCarregandoServicos(true);
 
-      const { data: dadosBarbearia, error: erroBarbearia } =
+      let { data: dadosBarbearia, error: erroBarbearia } =
         await supabase
           .from("barbearias")
           .select(
-            "id, nome, slug, telefone, descricao, logo_url, ativa"
+            "id, nome, slug, telefone, descricao, logo_url, capa_url, instagram, endereco, horario_abertura, horario_fechamento, ativa"
           )
           .eq("slug", slug)
           .eq("ativa", true)
           .maybeSingle();
+
+      if (erroBarbearia) {
+        const resultadoBasico = await supabase
+          .from("barbearias")
+          .select("id, nome, slug, telefone, descricao, logo_url, ativa")
+          .eq("slug", slug)
+          .eq("ativa", true)
+          .maybeSingle();
+        dadosBarbearia = resultadoBasico.data ? {
+          ...resultadoBasico.data,
+          capa_url: null,
+          instagram: null,
+          endereco: null,
+          horario_abertura: "08:00",
+          horario_fechamento: "21:00",
+        } : null;
+        erroBarbearia = resultadoBasico.error;
+      }
 
       if (cancelado) return;
 
@@ -77,6 +103,7 @@ export default function PaginaPublicaBarbearia() {
 
       const dados = dadosBarbearia as Barbearia;
       setBarbearia(dados);
+      setCarregando(false);
 
       const { data: dadosServicos, error: erroServicos } =
         await supabase
@@ -95,7 +122,7 @@ export default function PaginaPublicaBarbearia() {
         setServicos((dadosServicos ?? []) as Servico[]);
       }
 
-      setCarregando(false);
+      setCarregandoServicos(false);
     }
 
     if (slug) carregarPagina();
@@ -136,7 +163,7 @@ export default function PaginaPublicaBarbearia() {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#0B0F14] px-6 text-white">
         <div className="max-w-md text-center">
-          <div className="mb-5 text-5xl">✂️</div>
+          <div className="mb-5 flex justify-center text-[#C9A227]"><Icon name="scissors" className="h-12 w-12" /></div>
           <h1 className="text-2xl font-bold">Ops!</h1>
           <p className="mt-3 text-zinc-400">{erro}</p>
           <a
@@ -156,7 +183,7 @@ export default function PaginaPublicaBarbearia() {
     <main className="min-h-screen bg-[#0B0F14] text-white">
 
 <header className="border-b border-white/10">
-  <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 px-5 py-5">
+  <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:gap-4 sm:px-5 sm:py-5">
     <a href="/" className="text-xl font-black tracking-tight">
       Na Régua<span className="text-[#C9A227]">+</span>
     </a>
@@ -177,17 +204,18 @@ export default function PaginaPublicaBarbearia() {
   </div>
 </header>
 
-      <section className="mx-auto max-w-5xl px-5 pb-16 pt-12 md:pt-20">
-        <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-[#171A20] to-[#0B0F14] p-6 md:p-10">
-          <div className="flex flex-col items-start gap-6 sm:flex-row sm:items-center">
+      <section className="mx-auto max-w-5xl px-4 pb-12 pt-8 sm:px-5 sm:pb-16 sm:pt-12 md:pt-20">
+        <div className="relative overflow-hidden border border-white/10 bg-gradient-to-br from-[#171A20] to-[#0B0F14] p-4 sm:p-6 md:p-10">
+          {barbearia.capa_url && <img src={barbearia.capa_url} alt="" className="absolute inset-0 h-full w-full object-cover opacity-20" />}
+          <div className="relative flex flex-col items-start gap-6 sm:flex-row sm:items-center">
             {barbearia.logo_url ? (
               <img
                 src={barbearia.logo_url}
                 alt={`Logo da ${barbearia.nome}`}
-                className="h-24 w-24 rounded-2xl border border-white/10 object-cover"
+                className="h-24 w-24 border border-white/10 object-cover"
               />
             ) : (
-              <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl bg-[#C9A227] text-4xl font-black text-[#0B0F14]">
+              <div className="flex h-24 w-24 shrink-0 items-center justify-center bg-[#C9A227] text-4xl font-black text-[#0B0F14]">
                 {barbearia.nome.charAt(0).toUpperCase()}
               </div>
             )}
@@ -197,7 +225,7 @@ export default function PaginaPublicaBarbearia() {
                 Sua próxima transformação começa aqui
               </p>
 
-              <h1 className="text-3xl font-black tracking-tight md:text-5xl">
+              <h1 className="text-2xl font-black tracking-tight sm:text-3xl md:text-5xl">
                 {barbearia.nome}
               </h1>
 
@@ -205,6 +233,13 @@ export default function PaginaPublicaBarbearia() {
                 {barbearia.descricao ||
                   "Confira nossos serviços e escolha o que combina com você."}
               </p>
+
+              <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm text-zinc-400">
+                {barbearia.endereco && <span>{barbearia.endereco}</span>}
+                <span>Atendimento: {barbearia.horario_abertura?.slice(0, 5) ?? "08:00"}–{barbearia.horario_fechamento?.slice(0, 5) ?? "21:00"}</span>
+                {barbearia.instagram && <a href={`https://instagram.com/${barbearia.instagram.replace(/^@/, "")}`} target="_blank" rel="noreferrer" className="text-[#C9A227]">Instagram {barbearia.instagram}</a>}
+                {barbearia.telefone && <a href={`https://wa.me/${barbearia.telefone.replace(/\D/g, "")}`} target="_blank" rel="noreferrer" className="text-[#C9A227]">WhatsApp</a>}
+              </div>
 
               <button
                 type="button"
@@ -232,7 +267,11 @@ export default function PaginaPublicaBarbearia() {
             </p>
           </div>
 
-          {erro ? (
+          {carregandoServicos ? (
+            <p className="rounded-xl border border-white/10 bg-[#11151B] p-5 text-zinc-400">
+              Carregando serviços...
+            </p>
+          ) : erro ? (
             <p className="rounded-xl border border-red-500/30 bg-red-500/10 p-5 text-red-300">
               {erro}
             </p>
@@ -264,7 +303,7 @@ export default function PaginaPublicaBarbearia() {
                       </p>
                     </div>
 
-                    <span className="shrink-0 text-xl">✂️</span>
+                    <span className="shrink-0 text-[#C9A227]"><Icon name="scissors" /></span>
                   </div>
 
                   <div className="mt-6 flex items-end justify-between border-t border-white/10 pt-4">
@@ -328,9 +367,10 @@ export default function PaginaPublicaBarbearia() {
         aberto={modalAgendamentoAberto}
         onFechar={fecharAgendamento}
         onAgendamentoCriado={async () => {
-          setModalAgendamentoAberto(false);
+          // Mantém o diálogo aberto para exibir a confirmação da reserva.
         }}
         barbeariaId={barbearia.id}
+        barbeariaNome={barbearia.nome}
         servicoInicialId={servicoInicialId}
       />
     </main>

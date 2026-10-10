@@ -4,6 +4,7 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import Icon from "@/app/components/Icon";
 
 export default function LoginBarbeiroPage() {
   const router = useRouter();
@@ -84,7 +85,7 @@ export default function LoginBarbeiroPage() {
               NA RÉGUA+
             </p>
 
-            <h1 className="mt-6 text-5xl font-bold leading-tight tracking-tight">
+            <h1 className="mt-6 text-4xl font-bold leading-tight tracking-tight sm:text-5xl">
               Sua barbearia.
               <br />
               <span className="text-[#C9A227]">Sob seu controle.</span>
@@ -96,8 +97,8 @@ export default function LoginBarbeiroPage() {
             </p>
 
             <div className="mt-10 grid grid-cols-2 gap-3">
-              <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
-                <p className="text-2xl">📅</p>
+              <div className="border border-white/10 bg-white/[0.02] p-4 sm:p-5">
+                <p className="text-[#C9A227]"><Icon name="calendar" className="h-7 w-7" /></p>
                 <p className="mt-4 text-sm font-semibold">
                   Agenda organizada
                 </p>
@@ -106,8 +107,8 @@ export default function LoginBarbeiroPage() {
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
-                <p className="text-2xl">✂️</p>
+              <div className="border border-white/10 bg-white/[0.02] p-4 sm:p-5">
+                <p className="text-[#C9A227]"><Icon name="scissors" className="h-7 w-7" /></p>
                 <p className="mt-4 text-sm font-semibold">Gestão simples</p>
                 <p className="mt-1 text-xs leading-5 text-zinc-600">
                   Controle sua operação sem complicação.

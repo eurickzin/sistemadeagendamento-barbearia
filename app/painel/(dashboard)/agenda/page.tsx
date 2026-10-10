@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import Icon from "@/app/components/Icon";
 
 interface Servico {
   nome: string;
@@ -84,6 +85,10 @@ export default function AgendaPage() {
   const [erro, setErro] = useState<string | null>(null);
 
   const [processandoId, setProcessandoId] = useState<number | null>(null);
+  const [cancelamentoSelecionado, setCancelamentoSelecionado] =
+    useState<Agendamento | null>(null);
+  const [confirmacaoCancelamentoMarcada, setConfirmacaoCancelamentoMarcada] =
+    useState(false);
 
   // =========================================================
   // CARREGAR AGENDA
@@ -597,7 +602,7 @@ export default function AgendaPage() {
     novoStatus:
       | "concluido"
       | "cancelado"
-  ) {
+  ): Promise<boolean> {
     try {
       setProcessandoId(id);
 
@@ -620,12 +625,31 @@ export default function AgendaPage() {
           "Não foi possível atualizar o agendamento."
         );
 
-        return;
+        return false;
       }
 
       await carregarAgenda();
+      return true;
+    } catch (error) {
+      console.error("Erro ao atualizar status:", error);
+      alert("Não foi possível atualizar o agendamento.");
+      return false;
     } finally {
       setProcessandoId(null);
+    }
+  }
+
+  async function confirmarCancelamento() {
+    if (!cancelamentoSelecionado || !confirmacaoCancelamentoMarcada) return;
+
+    const cancelado = await atualizarStatus(
+      cancelamentoSelecionado.id,
+      "cancelado",
+    );
+
+    if (cancelado) {
+      setCancelamentoSelecionado(null);
+      setConfirmacaoCancelamentoMarcada(false);
     }
   }
 
@@ -694,7 +718,7 @@ export default function AgendaPage() {
   // =========================================================
 
   return (
-    <div className="space-y-8">
+    <div className="min-w-0 space-y-6 sm:space-y-8">
 
       {/* =====================================================
           HEADER
@@ -708,7 +732,7 @@ export default function AgendaPage() {
             Agenda
           </p>
 
-          <h1 className="text-3xl font-semibold tracking-tight">
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
             Sua agenda
           </h1>
 
@@ -741,7 +765,7 @@ export default function AgendaPage() {
         <div className="flex items-center gap-4">
 
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#C9A227]/10 text-xl text-[#C9A227]">
-            ✂
+            <Icon name="scissors" />
           </div>
 
           <div>
@@ -761,7 +785,7 @@ export default function AgendaPage() {
 
         <div className="flex items-center gap-2 text-sm text-zinc-400">
 
-          <span>📅</span>
+          <Icon name="calendar" />
 
           <span className="capitalize">
             {formatarDataCompleta(
@@ -810,7 +834,7 @@ export default function AgendaPage() {
 
         </div>
 
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-2.5 text-sm text-zinc-400">
+        <div className="border border-zinc-800 bg-zinc-900 px-3 py-2.5 text-xs text-zinc-400 sm:px-4 sm:text-sm">
           Data selecionada:{" "}
           {formatarDataCurta(
             dataSelecionada
@@ -998,7 +1022,7 @@ export default function AgendaPage() {
             <div className="rounded-2xl border border-dashed border-zinc-800 bg-[#10151C] px-6 py-16 text-center">
 
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-zinc-900 text-2xl">
-                📅
+                <Icon name="calendar" />
               </div>
 
               <h3 className="mt-5 text-lg font-medium text-white">
@@ -1242,12 +1266,10 @@ export default function AgendaPage() {
                             "confirmado" && (
 
                             <button
-                              onClick={() =>
-                                atualizarStatus(
-                                  agendamento.id,
-                                  "cancelado"
-                                )
-                              }
+                              onClick={() => {
+                                setCancelamentoSelecionado(agendamento);
+                                setConfirmacaoCancelamentoMarcada(false);
+                              }}
                               disabled={
                                 estaProcessando
                               }
@@ -1273,6 +1295,103 @@ export default function AgendaPage() {
           )}
 
       </div>
+
+      {cancelamentoSelecionado && (
+        <div
+          className="fixed inset-0 z-[100] flex items-end justify-center overflow-y-auto bg-black/80 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+          onClick={() => {
+            if (processandoId === null) {
+              setCancelamentoSelecionado(null);
+              setConfirmacaoCancelamentoMarcada(false);
+            }
+          }}
+        >
+          <section
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="titulo-confirmar-cancelamento"
+            aria-describedby="descricao-confirmar-cancelamento"
+            className="my-auto w-full max-w-md border border-red-500/30 bg-[#0B0F14] p-5 text-white shadow-2xl sm:p-7"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mb-5 flex items-start gap-4 border-b border-white/10 pb-5">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center border border-red-500/30 bg-red-500/10 text-red-300">
+                <Icon name="alert" className="h-6 w-6" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#C9A227]">
+                  {barbearia?.nome || "Na Régua+"}
+                </p>
+                <h2 id="titulo-confirmar-cancelamento" className="mt-1 text-xl font-bold">
+                  Confirmar cancelamento?
+                </h2>
+              </div>
+              <button
+                type="button"
+                aria-label="Fechar confirmação"
+                disabled={processandoId !== null}
+                onClick={() => {
+                  setCancelamentoSelecionado(null);
+                  setConfirmacaoCancelamentoMarcada(false);
+                }}
+                className="min-h-11 min-w-11 border border-white/10 text-xl text-zinc-400 hover:bg-white/5 hover:text-white disabled:opacity-50"
+              >
+                ×
+              </button>
+            </div>
+
+            <p id="descricao-confirmar-cancelamento" className="text-sm leading-6 text-zinc-400">
+              Este horário será marcado como cancelado e deixará de aparecer entre os agendamentos confirmados.
+            </p>
+
+            <div className="mt-5 border border-white/10 bg-white/[0.03] p-4">
+              <p className="font-semibold text-white">
+                {cancelamentoSelecionado.servico?.nome || "Serviço"}
+              </p>
+              <p className="mt-2 text-sm capitalize text-zinc-400">
+                {formatarDataAgenda(cancelamentoSelecionado.data)} · {formatarHorario(cancelamentoSelecionado.horario)}
+              </p>
+              <p className="mt-1 text-sm text-zinc-500">
+                Cliente: {cancelamentoSelecionado.cliente?.nome || "Não informado"}
+              </p>
+            </div>
+
+            <label className="mt-5 flex cursor-pointer items-start gap-3 border border-white/10 p-4 text-sm leading-5 text-zinc-200">
+              <input
+                type="checkbox"
+                checked={confirmacaoCancelamentoMarcada}
+                onChange={(event) => setConfirmacaoCancelamentoMarcada(event.target.checked)}
+                className="mt-0.5 h-5 w-5 shrink-0 accent-[#C9A227]"
+              />
+              <span>Confirmo que quero cancelar este agendamento.</span>
+            </label>
+
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                disabled={processandoId !== null}
+                onClick={() => {
+                  setCancelamentoSelecionado(null);
+                  setConfirmacaoCancelamentoMarcada(false);
+                }}
+                className="min-h-12 border border-white/15 px-4 py-3 text-sm font-semibold text-zinc-300 hover:bg-white/5 disabled:opacity-50"
+              >
+                Voltar
+              </button>
+              <button
+                type="button"
+                disabled={!confirmacaoCancelamentoMarcada || processandoId !== null}
+                onClick={confirmarCancelamento}
+                className="min-h-12 bg-red-500 px-4 py-3 text-sm font-bold text-white hover:bg-red-400 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {processandoId === cancelamentoSelecionado.id
+                  ? "Cancelando..."
+                  : "Confirmar cancelamento"}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
 
     </div>
   );

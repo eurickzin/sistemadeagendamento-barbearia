@@ -202,12 +202,12 @@ export default function ServicosPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8">
+    <div className="mx-auto min-w-0 max-w-5xl space-y-6 sm:space-y-8">
       <div>
         <p className="text-sm font-semibold uppercase tracking-widest text-[#C9A227]">
           Gestão da barbearia
         </p>
-        <h2 className="mt-2 text-3xl font-black">Meus serviços</h2>
+        <h2 className="mt-2 text-2xl font-black sm:text-3xl">Meus serviços</h2>
         <p className="mt-2 text-sm text-zinc-400">
           Cadastre os serviços que seus clientes poderão agendar.
         </p>
@@ -233,7 +233,7 @@ export default function ServicosPage() {
 
       <form
         onSubmit={salvarServico}
-        className="space-y-5 rounded-2xl border border-white/10 bg-[#090D12] p-5 sm:p-7"
+        className="space-y-5 border border-white/10 bg-[#090D12] p-4 sm:p-7"
       >
         <div className="flex items-center justify-between gap-3">
           <h3 className="text-lg font-bold">

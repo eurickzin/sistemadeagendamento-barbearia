@@ -50,7 +50,7 @@ export default function CadastroButton() {
 
   if (carregando) {
     return (
-      <div className="h-12 w-32 animate-pulse rounded-lg bg-white/5" />
+      <div className="h-11 w-20 animate-pulse bg-white/5 sm:w-32" />
     );
   }
 
@@ -59,17 +59,19 @@ export default function CadastroButton() {
       {logado ? (
         <a
           href="/minha-conta"
-          className="inline-flex items-center justify-center rounded-lg bg-[#C9A227] px-6 py-3 text-base font-bold text-black shadow-[0_0_20px_rgba(201,162,39,0.18)] transition-all duration-300 hover:-translate-y-1 hover:bg-[#E0BB35] hover:shadow-[0_0_30px_rgba(201,162,39,0.35)]"
+          className="inline-flex min-h-11 items-center justify-center bg-[#C9A227] px-3 py-2.5 text-sm font-bold text-black transition-colors hover:bg-[#E0BB35] sm:px-6 sm:py-3 sm:text-base"
         >
-          Minha conta
+          <span className="sm:hidden">Conta</span>
+          <span className="hidden sm:inline">Minha conta</span>
         </a>
       ) : (
         <button
           type="button"
           onClick={abrirLogin}
-          className="inline-flex items-center justify-center rounded-lg bg-[#C9A227] px-7 py-3 text-base font-bold text-black shadow-[0_0_20px_rgba(201,162,39,0.18)] transition-all duration-300 hover:-translate-y-1 hover:bg-[#E0BB35] hover:shadow-[0_0_30px_rgba(201,162,39,0.35)]"
+          className="inline-flex min-h-11 items-center justify-center whitespace-nowrap bg-[#C9A227] px-3 py-2.5 text-sm font-bold text-black transition-colors hover:bg-[#E0BB35] sm:px-7 sm:py-3 sm:text-base"
         >
-          Agendar agora
+          <span className="sm:hidden">Agendar</span>
+          <span className="hidden sm:inline">Agendar agora</span>
         </button>
       )}
 
