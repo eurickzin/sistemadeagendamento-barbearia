@@ -21,6 +21,7 @@ interface Barbeiro {
   horario_fechamento: string;
   dia_folga: number;
 }
+type HorarioFuncionamento = { aberto: boolean; abertura: string; fechamento: string };
 
 interface Agendamento {
   id: number;
@@ -119,6 +120,7 @@ export default function AgendamentoModal({
   const [diaFolga, setDiaFolga] = useState<string | null>(null);
   const [horarioAbertura, setHorarioAbertura] = useState("08:00");
   const [horarioFechamento, setHorarioFechamento] = useState("21:00");
+  const [horariosFuncionamento, setHorariosFuncionamento] = useState<HorarioFuncionamento[] | null>(null);
 
   const [carregandoServicos, setCarregandoServicos] = useState(false);
   const [carregandoHorarios, setCarregandoHorarios] = useState(false);
@@ -147,8 +149,16 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
   const barbeiroSelecionado = barbeiros.find(
     (barbeiro) => barbeiro.id === barbeiroSelecionadoId,
   );
-  const aberturaDisponivel = barbeiroSelecionado?.horario_abertura.slice(0, 5) ?? horarioAbertura;
-  const fechamentoDisponivel = barbeiroSelecionado?.horario_fechamento.slice(0, 5) ?? horarioFechamento;
+  const diaSelecionadoSemana = dataSelecionada ? new Date(`${dataSelecionada}T12:00:00`).getDay() : 0;
+  const horarioDiaSelecionado = horariosFuncionamento?.[diaSelecionadoSemana];
+  const aberturaBarbearia = horarioDiaSelecionado?.abertura ?? horarioAbertura;
+  const fechamentoBarbearia = horarioDiaSelecionado?.fechamento ?? horarioFechamento;
+  const aberturaDisponivel = barbeiroSelecionado
+    ? (aberturaBarbearia >= barbeiroSelecionado.horario_abertura.slice(0, 5) ? aberturaBarbearia : barbeiroSelecionado.horario_abertura.slice(0, 5))
+    : aberturaBarbearia;
+  const fechamentoDisponivel = barbeiroSelecionado
+    ? (fechamentoBarbearia <= barbeiroSelecionado.horario_fechamento.slice(0, 5) ? fechamentoBarbearia : barbeiroSelecionado.horario_fechamento.slice(0, 5))
+    : fechamentoBarbearia;
   const fluxoBarbeiroPrimeiro = Boolean(barbeiroInicialId);
 
   const anoCalendario = mesVisivel.getFullYear();
@@ -258,7 +268,7 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
 
       let { data: dadosBarbearia, error: erroBarbearia } = await supabase
         .from("barbearias")
-        .select("dia_folga, horario_abertura, horario_fechamento")
+        .select("dia_folga, horario_abertura, horario_fechamento, horarios_funcionamento")
         .eq("id", barbeariaId!)
         .maybeSingle();
 
@@ -287,6 +297,7 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
       );
       setHorarioAbertura(dadosBarbearia?.horario_abertura?.slice(0, 5) ?? "08:00");
       setHorarioFechamento(dadosBarbearia?.horario_fechamento?.slice(0, 5) ?? "21:00");
+      setHorariosFuncionamento(Array.isArray(dadosBarbearia?.horarios_funcionamento) ? dadosBarbearia.horarios_funcionamento as HorarioFuncionamento[] : null);
 
       const { data: equipe, error: erroEquipe } = await supabase
         .from("barbeiros")
@@ -382,6 +393,7 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
 
     const data = new Date(`${dataSelecionada}T12:00:00`);
     const diaSemana = data.getDay();
+    if (horariosFuncionamento && !horariosFuncionamento[diaSemana]?.aberto) return true;
 
     const diasSemana: Record<string, number> = {
       domingo: 0,
@@ -406,7 +418,7 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
       sab: 6,
     };
 
-    const folgas = [diaFolga, barbeiroSelecionado?.dia_folga]
+    const folgas = [horariosFuncionamento ? null : diaFolga, barbeiroSelecionado?.dia_folga]
       .filter((folga): folga is string | number => folga !== null && folga !== undefined)
       .map((folga) => String(folga).trim().toLowerCase());
 

@@ -12,6 +12,7 @@ interface Barbearia {
   id: string;
   nome: string | null;
   logo_url: string | null;
+  slug: string | null;
 }
 
 interface Notificacao {
@@ -52,7 +53,7 @@ export default function DashboardLayout({
 
       const { data, error } = await supabase
         .from("barbearias")
-        .select("id, nome, logo_url")
+        .select("id, nome, logo_url, slug")
         .eq("proprietario_id", user.id)
         .maybeSingle();
 
@@ -250,15 +251,6 @@ export default function DashboardLayout({
                 Agenda
               </Link>
 
-              <button
-                type="button"
-                disabled
-                className="flex w-full cursor-not-allowed items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium text-zinc-600"
-              >
-                <span className="text-lg">▤</span>
-                Agendamentos
-              </button>
-
               <Link
                 href="/painel/clientes"
                 className={classeLink(estaNosClientes)}
@@ -275,14 +267,6 @@ export default function DashboardLayout({
                 Serviços
               </Link>
 
-              <button
-                type="button"
-                disabled
-                className="flex w-full cursor-not-allowed items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium text-zinc-600"
-              >
-                <span className="text-lg">◫</span>
-                Horários
-              </button>
             </div>
 
             {/* CONTA */}
@@ -300,7 +284,9 @@ export default function DashboardLayout({
               </Link>
 
               <Link
-                href="/"
+                href={barbearia?.slug ? `/barbearia/${barbearia.slug}` : "/painel/configuracoes"}
+                target={barbearia?.slug ? "_blank" : undefined}
+                rel={barbearia?.slug ? "noopener noreferrer" : undefined}
                 className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-zinc-500 transition hover:bg-white/5 hover:text-white"
               >
                 <Icon name="externalLink" className="h-5 w-5" />

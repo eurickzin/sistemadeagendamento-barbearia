@@ -19,7 +19,11 @@ interface Barbearia {
   horario_abertura: string;
   horario_fechamento: string;
   dia_folga: number;
+  horarios_funcionamento?: { aberto: boolean; abertura: string; fechamento: string }[];
 }
+
+type HorarioDia = { aberto: boolean; abertura: string; fechamento: string };
+const HORARIOS_PADRAO: HorarioDia[] = Array.from({ length: 7 }, (_, dia) => ({ aberto: dia !== 0, abertura: "08:00", fechamento: "21:00" }));
 
 interface Barbeiro {
   id: string;
@@ -45,9 +49,8 @@ export default function ConfiguracoesPage() {
   const router = useRouter();
 
   const [barbearia, setBarbearia] = useState<Barbearia | null>(null);
+  const [horariosSemana, setHorariosSemana] = useState<HorarioDia[]>(HORARIOS_PADRAO);
   const [diaFolga, setDiaFolga] = useState<number | null>(null);
-  const [diaFolgaSalvo, setDiaFolgaSalvo] = useState<number | null>(null);
-  const [confirmarAlteracaoFolga, setConfirmarAlteracaoFolga] = useState(false);
   const [proprietarioId, setProprietarioId] = useState("");
   const [camposAvancadosDisponiveis, setCamposAvancadosDisponiveis] = useState(true);
 
@@ -55,7 +58,7 @@ export default function ConfiguracoesPage() {
   const [salvando, setSalvando] = useState(false);
   const [saindo, setSaindo] = useState(false);
   const [imagemParaRemover, setImagemParaRemover] = useState<"logo_url" | "capa_url" | null>(null);
-  const [modalConfiguracao, setModalConfiguracao] = useState<"perfil" | "equipe" | "folga" | null>(null);
+  const [modalConfiguracao, setModalConfiguracao] = useState<"perfil" | "equipe" | "horarios" | null>(null);
 
   const [mensagem, setMensagem] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
@@ -87,7 +90,7 @@ export default function ConfiguracoesPage() {
 
         let { data, error } = await supabase
           .from("barbearias")
-          .select("id, nome, slug, telefone, descricao, logo_url, capa_url, instagram, endereco, horario_abertura, horario_fechamento, dia_folga")
+          .select("id, nome, slug, telefone, descricao, logo_url, capa_url, instagram, endereco, horario_abertura, horario_fechamento, dia_folga, horarios_funcionamento")
           .eq("proprietario_id", user.id)
           .maybeSingle();
 
@@ -121,8 +124,11 @@ export default function ConfiguracoesPage() {
         }
 
         setBarbearia(data);
+        const horariosSalvos = data.horarios_funcionamento;
+        setHorariosSemana(Array.isArray(horariosSalvos) && horariosSalvos.length === 7
+          ? horariosSalvos
+          : HORARIOS_PADRAO.map((horario, dia) => ({ ...horario, aberto: dia !== data.dia_folga, abertura: data.horario_abertura?.slice(0, 5) ?? horario.abertura, fechamento: data.horario_fechamento?.slice(0, 5) ?? horario.fechamento })));
         setDiaFolga(data.dia_folga);
-        setDiaFolgaSalvo(data.dia_folga);
         setProprietarioId(user.id);
 
         const { data: equipe, error: erroEquipeBanco } = await supabase
@@ -210,8 +216,8 @@ export default function ConfiguracoesPage() {
     };
   }, [modalConfiguracao, barbearia?.id, supabase]);
 
-  async function salvarConfiguracoes(salvarDiaFolga = false): Promise<boolean> {
-    if (!barbearia || (salvarDiaFolga && diaFolga === null)) {
+  async function salvarConfiguracoes(): Promise<boolean> {
+    if (!barbearia) {
       return false;
     }
     if (!barbearia.nome?.trim() || !barbearia.slug?.trim()) {
@@ -234,7 +240,6 @@ const dadosAtualizacao = {
   telefone: barbearia.telefone,
   descricao: barbearia.descricao,
   logo_url: barbearia.logo_url,
-  ...(salvarDiaFolga ? { dia_folga: diaFolga } : {}),
   ...(camposAvancadosDisponiveis ? {
     capa_url: barbearia.capa_url,
     instagram: barbearia.instagram,
@@ -268,21 +273,15 @@ const { error } = await supabase
               ...atual,
               nome: (barbearia.nome ?? "").trim(),
               slug: barbearia.slug.trim(),
-              ...(salvarDiaFolga && diaFolga !== null ? { dia_folga: diaFolga } : {}),
             }
           : atual
       );
 
-      if (salvarDiaFolga && diaFolga !== null) {
-        setDiaFolgaSalvo(diaFolga);
-        setMensagem("Dia de folga da barbearia atualizado com sucesso.");
-      } else {
-        setMensagem(
-          camposAvancadosDisponiveis
-            ? "Configurações salvas com sucesso."
-            : "Dados básicos salvos. Execute o SQL de personalização no Supabase para habilitar capa, Instagram, endereço e horários."
-        );
-      }
+      setMensagem(
+        camposAvancadosDisponiveis
+          ? "Configurações salvas com sucesso."
+          : "Dados básicos salvos. Execute o SQL de personalização no Supabase para habilitar capa, Instagram, endereço e horários."
+      );
       return true;
     } catch (error) {
       console.error(
@@ -303,9 +302,29 @@ const { error } = await supabase
     }
   }
 
-  async function confirmarSalvarDiaFolga() {
-    const salvo = await salvarConfiguracoes(true);
-    if (salvo) setConfirmarAlteracaoFolga(false);
+
+  async function salvarHorariosSemana() {
+    if (!barbearia) return;
+    if (horariosSemana.some((dia) => dia.aberto && dia.abertura >= dia.fechamento)) {
+      setErro("Em cada dia aberto, o fechamento precisa ser depois da abertura.");
+      return;
+    }
+    setSalvando(true);
+    setErro(null);
+    setMensagem(null);
+    const { error: erroSalvar } = await supabase
+      .from("barbearias")
+      .update({ horarios_funcionamento: horariosSemana })
+      .eq("id", barbearia.id);
+    setSalvando(false);
+    if (erroSalvar) {
+      setErro(erroSalvar.code === "42703" || erroSalvar.code === "PGRST204"
+        ? "Aplique a migração supabase/horarios-funcionamento.sql no Supabase para habilitar os horários por dia."
+        : "Não foi possível salvar os horários de funcionamento.");
+      return;
+    }
+    setMensagem("Horários de funcionamento salvos.");
+    setModalConfiguracao(null);
   }
 
   function atualizar(campo: keyof Barbearia, valor: string | null) {
@@ -535,12 +554,6 @@ const { error } = await supabase
     setRemovendoBarbeiro(false);
   }
 
-  const nomeDiaFolga =
-    diaFolga !== null
-      ? DIAS_DA_SEMANA.find(
-          (dia) => dia.valor === diaFolga
-        )?.nome
-      : null;
 
   async function sair() {
     setSaindo(true);
@@ -622,6 +635,18 @@ const { error } = await supabase
         </button>
         <button
           type="button"
+          onClick={() => setModalConfiguracao("horarios")}
+          className="group flex min-h-20 items-center gap-3 rounded-2xl border border-zinc-800 bg-[#10151C] p-3.5 text-left transition hover:border-[#C9A227]/40 hover:bg-white/[0.03] sm:p-4"
+        >
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#C9A227]/10 text-[#C9A227]"><Icon name="calendar" /></span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold text-white">Horários de funcionamento</span>
+            <span className="mt-0.5 block truncate text-xs text-zinc-500">Personalize a abertura e o fechamento da barbearia</span>
+          </span>
+          <span className="text-zinc-500 transition group-hover:translate-x-0.5 group-hover:text-[#C9A227]" aria-hidden="true">›</span>
+        </button>
+        <button
+          type="button"
           onClick={() => setModalConfiguracao("equipe")}
           className="group flex min-h-20 items-center gap-3 rounded-2xl border border-zinc-800 bg-[#10151C] p-3.5 text-left transition hover:border-[#C9A227]/40 hover:bg-white/[0.03] sm:p-4"
         >
@@ -634,33 +659,37 @@ const { error } = await supabase
         </button>
         <button
           type="button"
-          onClick={() => setModalConfiguracao("folga")}
-          className="group flex min-h-20 items-center gap-3 rounded-2xl border border-zinc-800 bg-[#10151C] p-3.5 text-left transition hover:border-[#C9A227]/40 hover:bg-white/[0.03] sm:p-4"
+          onClick={() => void sair()}
+          disabled={saindo}
+          className="group flex min-h-20 items-center gap-3 rounded-2xl border border-red-500/30 bg-red-500/[0.05] p-3.5 text-left transition hover:border-red-400/50 hover:bg-red-500/10 disabled:opacity-50 sm:p-4"
         >
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#C9A227]/10 text-[#C9A227]"><Icon name="calendar" /></span>
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-500/10 text-red-300"><Icon name="logout" className="h-4 w-4" /></span>
           <span className="min-w-0 flex-1">
-            <span className="block text-sm font-semibold text-white">Dia de folga</span>
-            <span className="mt-0.5 block truncate text-xs text-zinc-500">{nomeDiaFolga ? `Fechado ${nomeDiaFolga}` : "Defina o dia sem atendimento"}</span>
+            <span className="block text-sm font-semibold text-red-300">{saindo ? "Saindo..." : "Sair da conta"}</span>
+            <span className="mt-0.5 block truncate text-xs text-red-300/60">Encerrar o acesso ao painel</span>
           </span>
-          <span className="text-zinc-500 transition group-hover:translate-x-0.5 group-hover:text-[#C9A227]" aria-hidden="true">›</span>
+          <span className="text-red-300/60 transition group-hover:translate-x-0.5 group-hover:text-red-300" aria-hidden="true">›</span>
         </button>
       </div>
 
-      <section className="flex flex-col gap-3 rounded-2xl border border-red-500/20 bg-red-500/[0.04] p-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-        <div>
-          <h2 className="text-sm font-semibold text-white">Sessão</h2>
-          <p className="mt-1 text-xs text-zinc-500">Encerre o acesso ao painel desta barbearia.</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => void sair()}
-          disabled={saindo}
-          className="inline-flex min-h-10 items-center justify-center gap-2 self-start rounded-xl border border-red-500/30 px-4 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-500/10 disabled:opacity-50 sm:self-auto"
-        >
-          <Icon name="logout" className="h-4 w-4" />
-          {saindo ? "Saindo..." : "Sair da conta"}
-        </button>
-      </section>
+      {modalConfiguracao === "horarios" && <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/70 p-0 backdrop-blur-sm sm:items-center sm:p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setModalConfiguracao(null); }}>
+        <section role="dialog" aria-modal="true" aria-labelledby="titulo-modal-horarios" className="settings-page max-h-[92dvh] w-full max-w-2xl space-y-5 overflow-y-auto rounded-t-2xl border border-zinc-800 bg-[#10151C] p-4 shadow-2xl sm:rounded-2xl sm:p-6">
+          <div className="flex items-start justify-between gap-3"><div><p className="text-sm text-zinc-500">Configurações</p><h2 id="titulo-modal-horarios" className="mt-1 text-lg font-semibold text-white">Horários de funcionamento</h2><p className="mt-1 text-sm text-zinc-500">Escolha os dias e horários em que a barbearia recebe clientes.</p></div><button type="button" aria-label="Fechar horários" onClick={() => setModalConfiguracao(null)} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 text-xl text-zinc-400 hover:bg-white/5 hover:text-white">×</button></div>
+          {erro && <p role="alert" className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">{erro}</p>}
+          <div className="space-y-2">
+            {DIAS_DA_SEMANA.map((dia) => {
+              const horario = horariosSemana[dia.valor];
+              return <div key={dia.valor} className="grid gap-3 rounded-xl border border-zinc-800 bg-[#0B0F14] p-3 sm:grid-cols-[1fr_auto_1fr_1fr] sm:items-center">
+                <span className="text-sm font-medium text-white">{dia.nome}</span>
+                <label className="flex items-center gap-2 text-xs text-zinc-400"><input type="checkbox" checked={horario.aberto} onChange={(event) => setHorariosSemana((atuais) => atuais.map((item, indice) => indice === dia.valor ? { ...item, aberto: event.target.checked } : item))} /> Aberto</label>
+                <label className="text-xs text-zinc-500">Abre<input type="time" disabled={!horario.aberto} value={horario.abertura} onChange={(event) => setHorariosSemana((atuais) => atuais.map((item, indice) => indice === dia.valor ? { ...item, abertura: event.target.value } : item))} className="mt-1 w-full border border-zinc-700 bg-[#10151C] px-2 py-2 text-sm text-white disabled:opacity-40" /></label>
+                <label className="text-xs text-zinc-500">Fecha<input type="time" disabled={!horario.aberto} value={horario.fechamento} onChange={(event) => setHorariosSemana((atuais) => atuais.map((item, indice) => indice === dia.valor ? { ...item, fechamento: event.target.value } : item))} className="mt-1 w-full border border-zinc-700 bg-[#10151C] px-2 py-2 text-sm text-white disabled:opacity-40" /></label>
+              </div>;
+            })}
+          </div>
+          <div className="flex justify-end border-t border-zinc-800 pt-4"><button type="button" onClick={() => void salvarHorariosSemana()} disabled={salvando} className="min-h-10 rounded-xl bg-[#C9A227] px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-[#E0BB35] disabled:opacity-50">{salvando ? "Salvando..." : "Salvar horários"}</button></div>
+        </section>
+      </div>}
 
       {modalConfiguracao === "perfil" && <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/70 p-0 backdrop-blur-sm sm:items-center sm:p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setModalConfiguracao(null); }}>
       <section role="dialog" aria-modal="true" aria-labelledby="titulo-modal-perfil" className="settings-page max-h-[92dvh] w-full max-w-4xl space-y-5 overflow-y-auto rounded-t-2xl border border-zinc-800 bg-[#10151C] p-4 shadow-2xl sm:rounded-2xl sm:p-6">
@@ -855,125 +884,6 @@ const { error } = await supabase
           </div>
         )}
       </section>
-      </div>}
-
-      {/* DIA DE FOLGA */}
-      {modalConfiguracao === "folga" && <div className="fixed inset-0 z-[10001] flex items-end justify-center bg-black/70 p-0 backdrop-blur-sm sm:items-center sm:p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setModalConfiguracao(null); }}>
-      <section role="dialog" aria-modal="true" aria-labelledby="titulo-modal-folga" className="settings-page max-h-[92dvh] w-full max-w-3xl overflow-y-auto rounded-t-2xl border border-zinc-800 bg-[#10151C] p-4 shadow-2xl sm:rounded-2xl sm:p-6">
-
-        <div className="flex items-start justify-between gap-3">
-          <div>
-          <h2 id="titulo-modal-folga" className="text-lg font-semibold text-white">
-            Dia de folga
-          </h2>
-
-          <p className="mt-1 max-w-2xl text-sm leading-6 text-zinc-500">
-            Escolha o dia da semana em que a barbearia
-            normalmente não realiza atendimentos.
-          </p>
-          </div>
-          <button type="button" aria-label="Fechar configuração do dia de folga" onClick={() => setModalConfiguracao(null)} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 text-xl text-zinc-400 hover:bg-white/5 hover:text-white">×</button>
-        </div>
-
-        {erro && <p role="alert" className="mt-4 rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">{erro}</p>}
-        {mensagem && <p role="status" className="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm text-emerald-300">{mensagem}</p>}
-
-        {/* DIAS */}
-        <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {DIAS_DA_SEMANA.map((dia) => {
-            const selecionado =
-              diaFolga === dia.valor;
-
-            return (
-              <button
-                key={dia.valor}
-                type="button"
-                onClick={() => {
-                  setDiaFolga(dia.valor);
-                  setMensagem(null);
-                  setErro(null);
-                }}
-                className={`flex items-center justify-between rounded-xl border px-4 py-4 text-left transition ${
-                  selecionado
-                    ? "border-[#C9A227] bg-[#C9A227]/10 text-[#C9A227]"
-                    : "border-zinc-800 bg-zinc-900 text-zinc-400 hover:border-zinc-700 hover:bg-zinc-800 hover:text-white"
-                }`}
-              >
-                <span className="text-sm font-medium">
-                  {dia.nome}
-                </span>
-
-                <span
-                  className={`flex h-5 w-5 items-center justify-center rounded-full border ${
-                    selecionado
-                      ? "border-[#C9A227] bg-[#C9A227] text-black"
-                      : "border-zinc-700"
-                  }`}
-                >
-                  {selecionado && (
-                    <span className="text-xs font-bold">
-                      ✓
-                    </span>
-                  )}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* RESUMO */}
-        {nomeDiaFolga && (
-          <div className="mt-6 rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
-            <p className="text-sm text-zinc-500">
-              Dia de folga configurado
-            </p>
-
-            <p className="mt-1 font-medium text-white">
-              {nomeDiaFolga}
-            </p>
-
-            <p className="mt-1 text-xs text-zinc-600">
-              Os clientes não poderão realizar
-              agendamentos nesse dia.
-            </p>
-          </div>
-        )}
-
-        {/* SALVAR */}
-        <div className="mt-6 flex justify-end border-t border-zinc-800 pt-6">
-          <button
-            type="button"
-            onClick={() => setConfirmarAlteracaoFolga(true)}
-            disabled={
-              salvando || diaFolga === null || diaFolga === diaFolgaSalvo
-            }
-            className="rounded-xl bg-[#C9A227] px-5 py-3 text-sm font-semibold text-black transition hover:bg-[#E0BB35] disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            Salvar dia de folga
-          </button>
-        </div>
-
-      </section>
-      </div>}
-
-      {confirmarAlteracaoFolga && diaFolga !== null && <div className="fixed inset-0 z-[10001] flex items-end justify-center bg-black/75 p-0 backdrop-blur-sm sm:items-center sm:p-4" onMouseDown={(event) => { if (event.target === event.currentTarget && !salvando) setConfirmarAlteracaoFolga(false); }}>
-        <section role="alertdialog" aria-modal="true" aria-labelledby="titulo-confirmar-folga" aria-describedby="descricao-confirmar-folga" className="my-auto w-full max-w-md rounded-t-2xl border border-[#C9A227]/30 bg-[#10151C] p-5 text-white shadow-2xl sm:rounded-2xl sm:p-6">
-          <div className="flex items-start gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#C9A227]/10 text-[#C9A227]"><Icon name="calendar" /></span>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#C9A227]">Confirmação</p>
-              <h2 id="titulo-confirmar-folga" className="mt-1 text-lg font-bold">Alterar dia de folga?</h2>
-            </div>
-          </div>
-          <p id="descricao-confirmar-folga" className="mt-4 text-sm leading-6 text-zinc-300">
-            Confirma o dia de folga da barbearia para <strong className="text-white">{nomeDiaFolga}</strong>? A partir da alteração, nenhum cliente poderá agendar serviços nesse dia da semana.
-          </p>
-          {erro && <p role="alert" className="mt-3 rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-xs leading-5 text-red-300">{erro}</p>}
-          <div className="mt-5 grid grid-cols-2 gap-2">
-            <button type="button" disabled={salvando} onClick={() => setConfirmarAlteracaoFolga(false)} className="min-h-11 rounded-xl border border-white/10 px-3 text-sm font-semibold text-zinc-300 hover:bg-white/5 disabled:opacity-50">Voltar</button>
-            <button type="button" disabled={salvando} onClick={() => void confirmarSalvarDiaFolga()} className="min-h-11 rounded-xl bg-[#C9A227] px-3 text-sm font-semibold text-black hover:bg-[#E0BB35] disabled:cursor-wait disabled:opacity-60">{salvando ? "Salvando..." : "Confirmar alteração"}</button>
-          </div>
-        </section>
       </div>}
 
       {barbeiroParaRemover && <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/75 p-0 backdrop-blur-sm sm:items-center sm:p-4" onMouseDown={(event) => { if (event.target === event.currentTarget && !removendoBarbeiro) { setBarbeiroParaRemover(null); setConfirmacaoRemocaoBarbeiroMarcada(false); } }}>
