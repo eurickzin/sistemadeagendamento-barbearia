@@ -1,12 +1,11 @@
 "use client";
 
-import { ChangeEvent, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import AgendamentoModal from "@/components/booking/AgendamentoModal";
 import BarbeariaPickerModal, { type BarbeariaParaAgendar } from "@/components/booking/BarbeariaPickerModal";
 import Icon from "@/components/ui/Icon";
-import { uploadProfileImage } from "@/lib/profile-images";
 
 interface Agendamento {
   id: number;
@@ -36,13 +35,7 @@ interface BarbeariaFavorita {
 export default function MinhaContaPage() {
   const router = useRouter();
 
-  const [email, setEmail] = useState("");
   const [nome, setNome] = useState("");
-  const [telefone, setTelefone] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState("");
-  const [perfilSalvando, setPerfilSalvando] = useState(false);
-  const [perfilMensagem, setPerfilMensagem] = useState("");
-  const [perfilErro, setPerfilErro] = useState("");
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [agendamentoAberto, setAgendamentoAberto] = useState(false);
@@ -51,9 +44,6 @@ export default function MinhaContaPage() {
   const [cancelamentoConfirmado, setCancelamentoConfirmado] = useState(false);
   const [erroCancelamento, setErroCancelamento] = useState("");
   const [historicoAberto, setHistoricoAberto] = useState(false);
-  const [perfilAberto, setPerfilAberto] = useState(false);
-  const [campoPerfilEditando, setCampoPerfilEditando] = useState<"nome" | "telefone" | null>(null);
-  const [valorOriginalEdicao, setValorOriginalEdicao] = useState("");
   const [seletorBarbeariaAberto, setSeletorBarbeariaAberto] = useState(false);
   const [barbeariaSelecionada, setBarbeariaSelecionada] = useState<BarbeariaParaAgendar | null>(null);
   const [barbeariasFavoritas, setBarbeariasFavoritas] = useState<BarbeariaFavorita[]>([]);
@@ -74,14 +64,10 @@ export default function MinhaContaPage() {
       return;
     }
 
-    setEmail(user.email ?? "");
-
     const nomeUsuario =
       user.user_metadata?.nome || user.user_metadata?.name || "";
 
     setNome(nomeUsuario);
-    setTelefone(user.user_metadata?.telefone ?? "");
-    setAvatarUrl(user.user_metadata?.avatar_url ?? "");
     const favoritasSalvas = user.user_metadata?.barbearias_favoritas;
     setBarbeariasFavoritas(
       Array.isArray(favoritasSalvas)
@@ -142,64 +128,6 @@ export default function MinhaContaPage() {
   useEffect(() => {
     carregarDados();
   }, []);
-
-  async function salvarPerfil() {
-    const supabase = createClient();
-    setPerfilSalvando(true);
-    setPerfilErro("");
-    setPerfilMensagem("");
-    try {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError || !user) throw new Error("Faça login novamente para editar seu perfil.");
-      const { error: profileError } = await supabase.from("profiles").upsert(
-        { id: user.id, nome: nome.trim(), telefone: telefone.trim() },
-        { onConflict: "id" },
-      );
-      if (profileError) throw new Error("Não foi possível atualizar seu perfil. Confira as permissões do Supabase.");
-      const { error } = await supabase.auth.updateUser({
-        data: {
-          nome: nome.trim(),
-          telefone: telefone.trim(),
-          avatar_url: avatarUrl,
-          barbearias_favoritas: barbeariasFavoritas,
-        },
-      });
-      if (error) throw new Error("Não foi possível salvar os dados da conta.");
-      setPerfilMensagem("Perfil atualizado com sucesso.");
-      setCampoPerfilEditando(null);
-    } catch (saveError) {
-      setPerfilErro(saveError instanceof Error ? saveError.message : "Erro ao salvar perfil.");
-    } finally {
-      setPerfilSalvando(false);
-    }
-  }
-
-  function iniciarEdicaoPerfil(campo: "nome" | "telefone") {
-    setPerfilErro("");
-    setPerfilMensagem("");
-    setValorOriginalEdicao(campo === "nome" ? nome : telefone);
-    setCampoPerfilEditando(campo);
-  }
-
-  function cancelarEdicaoPerfil() {
-    if (campoPerfilEditando === "nome") setNome(valorOriginalEdicao);
-    if (campoPerfilEditando === "telefone") setTelefone(valorOriginalEdicao);
-    setCampoPerfilEditando(null);
-  }
-
-  async function enviarAvatar(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
-    setPerfilErro("");
-    try {
-      const { data: { user } } = await createClient().auth.getUser();
-      if (!user) throw new Error("Faça login novamente para enviar sua foto.");
-      setAvatarUrl(await uploadProfileImage(file, user.id, "avatar"));
-    } catch (uploadError) {
-      setPerfilErro(uploadError instanceof Error ? uploadError.message : "Não foi possível enviar a foto.");
-    }
-  }
 
   // =========================
   // RECARREGAR AGENDAMENTOS
@@ -284,24 +212,10 @@ export default function MinhaContaPage() {
     });
     if (error) {
       console.error("Não foi possível salvar a barbearia favorita:", error);
-      setPerfilErro("Agendamento confirmado, mas não foi possível salvar a barbearia favorita.");
       return;
     }
 
     setBarbeariasFavoritas(novasFavoritas);
-  }
-
-  // =========================
-  // LOGOUT
-  // =========================
-
-  async function sair() {
-    const supabase = createClient();
-
-    await supabase.auth.signOut();
-
-    router.push("/");
-    router.refresh();
   }
 
   // =========================
@@ -562,7 +476,7 @@ export default function MinhaContaPage() {
   // =========================
 
   return (
-    <main className="min-h-screen bg-[#0B0F14] pb-5 pl-4 pr-14 pt-16 text-white sm:pb-6 sm:pl-6 sm:pr-16 sm:pt-20 lg:pb-10 lg:pl-8 lg:pr-16 lg:pt-10">
+    <main className="min-h-screen bg-[#0B0F14] px-4 pb-5 pt-16 text-white sm:px-6 sm:pb-6 sm:pt-20 lg:px-8 lg:pb-10 lg:pt-10">
       <div className="mx-auto max-w-6xl">
         {/* HEADER */}
         <header className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
@@ -583,233 +497,57 @@ export default function MinhaContaPage() {
           <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
             <button
               type="button"
-              onClick={() => {
-                if (perfilAberto) cancelarEdicaoPerfil();
-                setPerfilAberto((aberto) => !aberto);
-                setPerfilErro("");
-                setPerfilMensagem("");
-              }}
-              aria-expanded={perfilAberto}
-              aria-controls="painel-perfil-cliente"
-              className="flex min-h-11 w-full items-center justify-center gap-2 border border-[#C9A227]/40 px-4 py-2.5 text-sm font-semibold text-[#C9A227] transition hover:bg-[#C9A227]/10 sm:w-auto"
+              onClick={() => setSeletorBarbeariaAberto(true)}
+              className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/15 px-5 py-2.5 text-sm font-semibold text-zinc-200 transition hover:border-[#C9A227]/50 hover:text-[#C9A227] sm:w-auto"
             >
-              <Icon name="user" className="h-4 w-4" />
-              Perfil
+              <Icon name="search" className="h-4 w-4" />
+              Buscar barbearias
             </button>
             <button
               type="button"
-              onClick={sair}
-              className="min-h-11 w-full border border-white/10 px-4 py-2.5 text-sm font-medium text-zinc-400 transition-all hover:border-red-500/30 hover:bg-red-500/5 hover:text-red-400 sm:w-auto"
+              onClick={() => setSeletorBarbeariaAberto(true)}
+              className="min-h-11 w-full rounded-xl bg-[#C9A227] px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-[#E0BB35] sm:w-auto"
             >
-              Sair da conta
+              + Novo agendamento
             </button>
           </div>
         </header>
 
-        <section
-          id="painel-perfil-cliente"
-          aria-labelledby="titulo-perfil-cliente"
-          hidden={!perfilAberto}
-          className="mb-8 border border-white/10 bg-white/[0.02] p-5 sm:p-6"
+        <button
+          type="button"
+          onClick={() => router.push("/minha-conta/configuracoes")}
+          aria-label="Configurações"
+          title="Configurações"
+          className="account-settings-toggle fixed right-14 top-3 z-[10000] inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-[#11151b]/90 text-zinc-100 shadow-lg backdrop-blur transition hover:border-[#C9A227]/50 hover:text-[#C9A227] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A227]"
         >
-            <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden bg-[#C9A227]/10 text-xl font-bold text-[#C9A227]">
-                {avatarUrl ? (
-                  <img src={avatarUrl} alt="Foto do perfil" className="h-full w-full object-cover" />
-                ) : (
-                  (nome || email || "U").charAt(0).toUpperCase()
-                )}
-              </div>
-
-              <div className="min-w-0 flex-1">
-                <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-medium uppercase tracking-wider text-[#C9A227]">Sua conta</p>
-                    <h2 id="titulo-perfil-cliente" className="mt-1 text-xl font-bold text-white">Perfil</h2>
-                  </div>
-                  <label className="inline-flex min-h-11 cursor-pointer items-center gap-2 border border-white/15 px-4 py-2 text-sm text-zinc-200 transition hover:border-[#C9A227]/40 hover:text-[#C9A227]">
-                    <Icon name="edit" className="h-4 w-4" />
-                    Alterar foto
-                    <input type="file" accept="image/png,image/jpeg,image/webp" onChange={enviarAvatar} className="sr-only" />
-                  </label>
-                </div>
-
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <span className="block text-sm text-zinc-400">Nome</span>
-                    <div className="mt-1 flex min-h-11 items-center gap-2 border-b border-white/10">
-                      {campoPerfilEditando === "nome" ? (
-                        <input
-                          value={nome}
-                          onChange={(event) => setNome(event.target.value)}
-                          autoComplete="name"
-                          autoFocus
-                          aria-label="Nome"
-                          className="min-w-0 flex-1 bg-transparent py-2 text-white outline-none"
-                        />
-                      ) : (
-                        <p className="min-w-0 flex-1 truncate py-2 text-white">{nome || "Adicionar nome"}</p>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => campoPerfilEditando === "nome" ? cancelarEdicaoPerfil() : iniciarEdicaoPerfil("nome")}
-                        disabled={Boolean(campoPerfilEditando && campoPerfilEditando !== "nome")}
-                        aria-label={campoPerfilEditando === "nome" ? "Cancelar edição do nome" : "Editar nome"}
-                        className="flex h-11 w-11 shrink-0 items-center justify-center text-zinc-400 transition hover:text-[#C9A227] disabled:cursor-not-allowed disabled:opacity-40"
-                      >
-                        {campoPerfilEditando === "nome" ? <span aria-hidden="true">×</span> : <Icon name="edit" className="h-4 w-4" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <span className="block text-sm text-zinc-400">Telefone</span>
-                    <div className="mt-1 flex min-h-11 items-center gap-2 border-b border-white/10">
-                      {campoPerfilEditando === "telefone" ? (
-                        <input
-                          value={telefone}
-                          onChange={(event) => setTelefone(event.target.value)}
-                          autoComplete="tel"
-                          inputMode="tel"
-                          aria-label="Telefone"
-                          className="min-w-0 flex-1 bg-transparent py-2 text-white outline-none"
-                        />
-                      ) : (
-                        <p className="min-w-0 flex-1 truncate py-2 text-white">{telefone || "Adicionar telefone"}</p>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => campoPerfilEditando === "telefone" ? cancelarEdicaoPerfil() : iniciarEdicaoPerfil("telefone")}
-                        disabled={Boolean(campoPerfilEditando && campoPerfilEditando !== "telefone")}
-                        aria-label={campoPerfilEditando === "telefone" ? "Cancelar edição do telefone" : "Editar telefone"}
-                        className="flex h-11 w-11 shrink-0 items-center justify-center text-zinc-400 transition hover:text-[#C9A227] disabled:cursor-not-allowed disabled:opacity-40"
-                      >
-                        {campoPerfilEditando === "telefone" ? <span aria-hidden="true">×</span> : <Icon name="edit" className="h-4 w-4" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <span className="block text-sm text-zinc-400">E-mail</span>
-                    <p className="mt-2 break-all text-white">{email || "—"}</p>
-                  </div>
-                </div>
-
-                <div className="mt-6 border-t border-white/10 pt-5">
-                  <h3 className="text-sm font-semibold text-white">Barbearias favoritas</h3>
-                  {barbeariasFavoritas.length ? (
-                    <ul className="mt-3 flex flex-wrap gap-2">
-                      {barbeariasFavoritas.map((barbearia) => (
-                        <li key={barbearia.id}>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setBarbeariaSelecionada(barbearia);
-                              setPerfilAberto(false);
-                              setAgendamentoAberto(true);
-                            }}
-                            className="inline-flex min-h-11 items-center gap-2 border border-[#C9A227]/25 px-3 py-2 text-sm text-zinc-200 transition hover:border-[#C9A227]/60 hover:text-[#C9A227]"
-                          >
-                            <span className="truncate">{barbearia.nome}</span>
-                            <span className="text-[#C9A227]" aria-hidden="true">★</span>
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="mt-2 text-sm text-zinc-500">A barbearia ficará salva aqui depois do seu primeiro agendamento.</p>
-                  )}
-                </div>
-
-                <div className="mt-5 flex flex-wrap items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={salvarPerfil}
-                    disabled={perfilSalvando}
-                    className="min-h-11 bg-[#C9A227] px-5 py-3 text-sm font-semibold text-black transition hover:bg-[#E0BB35] disabled:opacity-50"
-                  >
-                    {perfilSalvando ? "Salvando..." : "Salvar alterações"}
-                  </button>
-                  {perfilErro && <p role="alert" className="text-sm text-red-400">{perfilErro}</p>}
-                  {perfilMensagem && <p role="status" className="text-sm text-emerald-400">{perfilMensagem}</p>}
-                </div>
-              </div>
-            </div>
-        </section>
+          <Icon name="settings" className="h-5 w-5" />
+        </button>
 
         {/* RESUMO */}
-        <section className="mb-8 grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
-          {/* PRÓXIMO */}
-          <div className="rounded-2xl border border-[#C9A227]/20 bg-[#C9A227]/[0.04] p-5">
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
-                Próximo
-              </p>
-
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#C9A227]/10 text-[#C9A227]">
-                <Icon name="calendar" />
-              </div>
-            </div>
-
-            {proximoAgendamento ? (
-              <>
-                <p className="mt-4 text-lg font-bold text-white">
-                  {formatarData(proximoAgendamento.data)}
-                </p>
-
-                <p className="mt-1 text-sm text-[#C9A227]">
-                  às {formatarHorario(proximoAgendamento.horario)}
-                </p>
-              </>
-            ) : (
-              <p className="mt-4 text-sm text-zinc-500">
-                Nenhum agendamento próximo
-              </p>
-            )}
-          </div>
-
+        <section className="mb-8 grid gap-2 sm:grid-cols-2 sm:gap-3">
           {/* TOTAL */}
-          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
-                Agendamentos
-              </p>
-
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/5 text-zinc-400">
-                <Icon name="scissors" />
-              </div>
+          <div className="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.02] px-4 py-3">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">Agendamentos</p>
+              <p className="mt-0.5 text-xs text-zinc-600">no total</p>
             </div>
-
-            <p className="mt-4 text-3xl font-bold text-white">
-              {totalAgendamentos}
-            </p>
-
-            <p className="mt-1 text-sm text-zinc-500">no total</p>
+            <p className="text-2xl font-semibold tabular-nums text-white">{totalAgendamentos}</p>
           </div>
 
           {/* CONCLUÍDOS */}
-          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 sm:col-span-2 lg:col-span-1">
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
-                Concluídos
-              </p>
-
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400">
-                ✓
-              </div>
+          <div className="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.02] px-4 py-3">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">Concluídos</p>
+              <p className="mt-0.5 text-xs text-zinc-600">serviços realizados</p>
             </div>
-
-            <p className="mt-4 text-3xl font-bold text-white">
-              {totalConcluidos}
-            </p>
-
-            <p className="mt-1 text-sm text-zinc-500">serviços realizados</p>
+            <p className="text-2xl font-semibold tabular-nums text-white">{totalConcluidos}</p>
           </div>
         </section>
 
         {/* PRÓXIMO AGENDAMENTO */}
+        {proximoAgendamento && (
         <section className="mb-10">
-          <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="mb-5">
             <div>
               <p className="text-xs font-medium uppercase tracking-wider text-[#C9A227]">
                 Seu horário
@@ -820,16 +558,8 @@ export default function MinhaContaPage() {
               </h2>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setSeletorBarbeariaAberto(true)}
-              className="w-full rounded-xl bg-[#C9A227] px-5 py-3 text-sm font-semibold text-black transition-all hover:bg-[#E0BB35] sm:w-auto"
-            >
-              + Novo agendamento
-            </button>
           </div>
 
-          {proximoAgendamento ? (
             <div className="overflow-hidden border border-[#C9A227]/20 bg-white/[0.02]">
               <div className="h-1 w-full bg-[#C9A227]" />
 
@@ -928,31 +658,8 @@ export default function MinhaContaPage() {
                 )}
               </div>
             </div>
-          ) : (
-            <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-10 text-center">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#C9A227]/10 text-2xl">
-                <Icon name="calendar" />
-              </div>
-
-              <h3 className="mt-5 font-semibold text-white">
-                Você não possui nenhum horário marcado
-              </h3>
-
-              <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-zinc-500">
-                Escolha um serviço e encontre um horário disponível para fazer
-                seu próximo agendamento.
-              </p>
-
-              <button
-                type="button"
-                onClick={() => setSeletorBarbeariaAberto(true)}
-                className="mt-6 rounded-xl bg-[#C9A227] px-5 py-3 text-sm font-semibold text-black transition-all hover:bg-[#E0BB35]"
-              >
-                Fazer meu primeiro agendamento
-              </button>
-            </div>
-          )}
         </section>
+        )}
 
         {/* AGENDAMENTOS ATIVOS */}
         {agendamentosAtivos.length > 1 && (
@@ -1230,6 +937,10 @@ export default function MinhaContaPage() {
       <AgendamentoModal
         aberto={agendamentoAberto}
         onFechar={() => setAgendamentoAberto(false)}
+        onVoltarParaBusca={() => {
+          setAgendamentoAberto(false);
+          setSeletorBarbeariaAberto(true);
+        }}
         onAgendamentoCriado={concluirAgendamento}
         barbeariaId={barbeariaSelecionada?.id}
         barbeariaNome={barbeariaSelecionada?.nome}

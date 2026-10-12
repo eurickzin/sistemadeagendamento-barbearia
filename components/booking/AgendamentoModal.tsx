@@ -35,6 +35,7 @@ interface Agendamento {
 interface AgendamentoModalProps {
   aberto: boolean;
   onFechar: () => void;
+  onVoltarParaBusca?: () => void;
   onAgendamentoCriado: () => Promise<void>;
   barbeariaId?: string;
   barbeariaNome?: string;
@@ -96,6 +97,7 @@ function formatarData(data: string): string {
 export default function AgendamentoModal({
   aberto,
   onFechar,
+  onVoltarParaBusca,
   onAgendamentoCriado,
   barbeariaId,
   barbeariaNome,
@@ -279,7 +281,7 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
           .eq("id", barbeariaId!)
           .maybeSingle();
         dadosBarbearia = resultadoBasico.data
-          ? { ...resultadoBasico.data, horario_abertura: "08:00", horario_fechamento: "21:00" }
+          ? { ...resultadoBasico.data, horario_abertura: "08:00", horario_fechamento: "21:00", horarios_funcionamento: null }
           : null;
         erroBarbearia = resultadoBasico.error;
       }
@@ -797,7 +799,7 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-stretch justify-center overflow-y-auto bg-black/80 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+      className="fixed inset-0 z-[10002] flex items-stretch justify-center overflow-y-auto bg-black/80 p-0 backdrop-blur-sm sm:items-center sm:p-4"
       onClick={onFechar}
     >
       <section
@@ -829,14 +831,26 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
             </h2>
           </div>
 
-          <button
-            type="button"
-            onClick={onFechar}
-            aria-label="Fechar modal"
-            className="rounded-lg px-3 py-2 text-xl text-zinc-400 transition hover:bg-white/10 hover:text-white"
-          >
-            ×
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            {onVoltarParaBusca && !sucesso && (
+              <button
+                type="button"
+                onClick={onVoltarParaBusca}
+                className="inline-flex min-h-11 items-center gap-2 border border-white/10 px-3 text-sm font-medium text-zinc-300 transition hover:border-[#C9A227]/40 hover:text-white"
+              >
+                <span aria-hidden="true">←</span>
+                Busca
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onFechar}
+              aria-label="Fechar modal"
+              className="rounded-lg px-3 py-2 text-xl text-zinc-400 transition hover:bg-white/10 hover:text-white"
+            >
+              ×
+            </button>
+          </div>
         </div>
 
         {sucesso ? (

@@ -127,6 +127,13 @@
   backdrop-filter: blur(12px);
 }
 
+:root[data-theme="light"] .account-settings-toggle {
+  border-color: #d7e0e9;
+  background: rgb(255 255 255 / 92%);
+  color: #27445f;
+  box-shadow: 0 8px 24px rgb(39 68 95 / 18%);
+}
+
 :root[data-theme="light"] .theme-dark-action {
   border-color: #303740 !important;
   background-color: #303740 !important;

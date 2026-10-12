@@ -113,6 +113,7 @@ export default function ConfiguracoesPage() {
             endereco: null,
             horario_abertura: "08:00",
             horario_fechamento: "21:00",
+            horarios_funcionamento: null,
           } : null;
           setCamposAvancadosDisponiveis(false);
         }

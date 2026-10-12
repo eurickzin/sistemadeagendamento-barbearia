@@ -10,7 +10,7 @@ const next = url.searchParams.get("next");
 const destino =
 next && next.startsWith("/") && !next.startsWith("//")
 ? next
-: "/";
+: "/minha-conta";
 
 if (code) {
 const supabase = await createClient();

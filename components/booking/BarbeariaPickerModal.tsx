@@ -89,10 +89,10 @@ export default function BarbeariaPickerModal({
           <button
             type="button"
             onClick={onFechar}
-            aria-label="Fechar seleção de barbearia"
-            className="flex h-11 w-11 shrink-0 items-center justify-center text-2xl text-zinc-400 transition hover:text-white"
+            className="inline-flex min-h-11 shrink-0 items-center gap-2 border border-white/10 px-3 text-sm font-medium text-zinc-300 transition hover:border-[#C9A227]/40 hover:text-white"
           >
-            ×
+            <span aria-hidden="true">←</span>
+            Voltar
           </button>
         </div>
 
