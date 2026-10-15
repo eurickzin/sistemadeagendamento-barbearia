@@ -2,7 +2,8 @@
 
 import { useState, type FormEvent } from "react";
 
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/lib/neon/client";
+import { useDialogFocus } from "@/lib/useDialogFocus";
 
 interface CadastroModalProps {
   aberto: boolean;
@@ -23,6 +24,7 @@ export default function CadastroModal({
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState("");
   const [carregando, setCarregando] = useState(false);
+  const dialogRef = useDialogFocus<HTMLDivElement>(aberto, fecharModal);
 
   async function handleCadastro(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -47,26 +49,13 @@ export default function CadastroModal({
 
     setCarregando(true);
 
-    console.log(
-      "SUPABASE URL:",
-      process.env.NEXT_PUBLIC_SUPABASE_URL
-    );
+    const neon = createClient();
 
-    console.log(
-      "SUPABASE KEY:",
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-    );
-
-    const supabase = createClient();
-
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await neon.auth.signUp({
       email,
       password: senha,
       options: {
-        data: {
-          nome,
-          telefone,
-        },
+        data: { displayName: nome.trim(), phone: telefone.trim() },
       },
     });
 
@@ -74,6 +63,21 @@ export default function CadastroModal({
       setErro(error.message);
       setCarregando(false);
       return;
+    }
+
+    // With email confirmation enabled, signUp returns a user without an
+    // authenticated session. Defer the RLS-protected profile write until login.
+    if (data.user && data.session) {
+      const { error: profileError } = await neon.from("profiles").upsert({
+        id: data.user.id,
+        nome: nome.trim(),
+        telefone: telefone.trim(),
+      }, { onConflict: "id" });
+      if (profileError) {
+        setErro("Conta criada, mas não foi possível salvar o perfil. Entre e complete seus dados nas configurações.");
+        setCarregando(false);
+        return;
+      }
     }
 
     setSucesso(
@@ -96,7 +100,8 @@ export default function CadastroModal({
 
   return (
     <div
-      className={`fixed inset-0 z-[9999] flex h-screen w-screen items-center justify-center overflow-y-auto bg-black/80 px-4 py-8 backdrop-blur-md transition-all duration-300 ease-out ${
+      inert={!aberto}
+      className={`fixed inset-0 z-[9999] flex h-dvh w-screen items-center justify-center overflow-y-auto bg-black/80 px-4 py-4 backdrop-blur-md transition-all duration-300 ease-out sm:py-8 ${
         aberto
           ? "pointer-events-auto opacity-100"
           : "pointer-events-none opacity-0"
@@ -104,7 +109,12 @@ export default function CadastroModal({
       onClick={fecharModal}
     >
       <div
-        className={`relative my-auto w-full max-w-md overflow-hidden rounded-xl border border-white/10 bg-[#0B0F14] shadow-2xl shadow-black/50 transition-all duration-300 ease-out ${
+        ref={dialogRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal={aberto}
+        aria-labelledby="titulo-cadastro-cliente"
+        className={`relative my-auto max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto overscroll-contain rounded-xl border border-white/10 bg-[#0B0F14] shadow-2xl shadow-black/50 transition-all duration-300 ease-out ${
           aberto
             ? "translate-y-0 scale-100"
             : "translate-y-3 scale-95"
@@ -131,7 +141,7 @@ export default function CadastroModal({
               RK BARBER.
             </p>
 
-            <h2 className="mt-3 text-3xl font-bold tracking-tight text-white">
+            <h2 id="titulo-cadastro-cliente" className="mt-3 text-3xl font-bold tracking-tight text-white">
               Criar sua conta
             </h2>
 

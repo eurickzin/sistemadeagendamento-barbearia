@@ -1,21 +1,11 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from "@/lib/neon/client";
 import { unstable_cache } from "next/cache";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-      detectSessionInUrl: false,
-    },
-  },
-);
+const neon = createClient();
 
 export const carregarBarbeariaPublica = unstable_cache(
   async (slug: string) => {
-    let { data, error } = await supabase
+    let { data, error } = await neon
       .from("barbearias")
       .select(
         "id, nome, slug, telefone, descricao, logo_url, capa_url, instagram, endereco, horario_abertura, horario_fechamento, ativa",
@@ -25,7 +15,7 @@ export const carregarBarbeariaPublica = unstable_cache(
       .maybeSingle();
 
     if (error) {
-      const resultadoBasico = await supabase
+      const resultadoBasico = await neon
         .from("barbearias")
         .select("id, nome, slug, telefone, descricao, logo_url, ativa")
         .eq("slug", slug)
@@ -50,13 +40,13 @@ export const carregarBarbeariaPublica = unstable_cache(
       error: error ? { code: error.code, message: error.message } : null,
     };
   },
-  ["barbearia-publica-v1", process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""],
+  ["barbearia-publica-v1", process.env.NEXT_PUBLIC_NEON_URL ?? ""],
   { revalidate: 60, tags: ["barbearias-publicas"] },
 );
 
 export const carregarCatalogoPublico = unstable_cache(
   async () => {
-    const { data, error } = await supabase
+    const { data, error } = await neon
       .from("barbearias")
       .select("id, nome, slug, descricao, logo_url")
       .eq("ativa", true)
@@ -67,21 +57,21 @@ export const carregarCatalogoPublico = unstable_cache(
       error: error ? { code: error.code, message: error.message } : null,
     };
   },
-  ["catalogo-barbearias-publico-v1", process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""],
+  ["catalogo-barbearias-publico-v1", process.env.NEXT_PUBLIC_NEON_URL ?? ""],
   { revalidate: 60, tags: ["barbearias-publicas"] },
 );
 
 export const carregarServicosEBarbeirosPublicos = unstable_cache(
   async (barbeariaId: string) => {
     const [servicos, barbeiros] = await Promise.all([
-      supabase
+      neon
         .from("servicos")
         .select("id, nome, descricao, preco, duracao, ativo")
         .eq("barbearia_id", barbeariaId)
         .eq("ativo", true)
         .is("excluido_em", null)
         .order("nome", { ascending: true }),
-      supabase
+      neon
         .from("barbeiros")
         .select("id, nome, horario_abertura, horario_fechamento, dia_folga")
         .eq("barbearia_id", barbeariaId)
@@ -100,6 +90,6 @@ export const carregarServicosEBarbeirosPublicos = unstable_cache(
         : null,
     };
   },
-  ["dados-agendamento-publico-v1", process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""],
+  ["dados-agendamento-publico-v1", process.env.NEXT_PUBLIC_NEON_URL ?? ""],
   { revalidate: 60, tags: ["barbearias-publicas"] },
 );

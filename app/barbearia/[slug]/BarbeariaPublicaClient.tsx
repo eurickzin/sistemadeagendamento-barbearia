@@ -117,12 +117,13 @@ export default function PaginaPublicaBarbearia({
           <div className="mb-5 flex justify-center text-[#C9A227]"><Icon name="scissors" className="h-12 w-12" /></div>
           <h1 className="text-2xl font-bold">Ops!</h1>
           <p className="mt-3 text-zinc-400">{erro}</p>
-          <a
+          <Link
             href="/"
             className="mt-6 inline-block rounded-xl bg-[#C9A227] px-6 py-3 font-semibold text-black transition hover:bg-[#E0BB35]"
           >
             Voltar ao início
-          </a>
+          </Link>
+          {erro === "Não foi possível carregar a barbearia." && <button type="button" onClick={() => window.location.reload()} className="ml-3 mt-3 min-h-11 px-3 text-sm font-semibold text-[#E0BB35]">Tentar novamente</button>}
         </div>
       </main>
     );
@@ -135,9 +136,9 @@ export default function PaginaPublicaBarbearia({
 
 <header className="border-b border-white/10">
   <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 py-4 pl-4 pr-14 sm:gap-4 sm:py-5 sm:pl-5 sm:pr-16">
-    <a href="/" className="text-xl font-black tracking-tight">
+    <Link href="/" className="text-xl font-black tracking-tight">
       Na Régua<span className="text-[#C9A227]">+</span>
-    </a>
+    </Link>
 
     <div className="flex flex-wrap items-center gap-3">
       <Link
@@ -187,7 +188,7 @@ export default function PaginaPublicaBarbearia({
                 {barbearia.nome}
               </h1>
 
-              <p className="mt-3 max-w-2xl text-sm leading-7 text-zinc-300 sm:text-base">
+              <p className="mt-3 max-w-2xl break-words text-sm leading-7 text-zinc-300 sm:text-base">
                 {barbearia.descricao ||
                   "Confira nossos serviços e escolha o que combina com você."}
               </p>
@@ -388,7 +389,7 @@ function ListaServicosPublicos({
       {servicos.map((servico) => (
         <article key={servico.id} className="rounded-2xl border border-white/10 bg-[#11151B] p-5 transition hover:border-[#C9A227]/50">
           <div className="flex items-start justify-between gap-4">
-            <div>
+            <div className="min-w-0 break-words">
               <h3 className="text-lg font-bold">{servico.nome}</h3>
               <p className="mt-2 text-sm leading-6 text-zinc-400">
                 {servico.descricao || "Um serviço feito para você."}
@@ -397,12 +398,12 @@ function ListaServicosPublicos({
             <span className="shrink-0 text-[#C9A227]"><Icon name="scissors" /></span>
           </div>
 
-          <div className="mt-6 flex items-end justify-between border-t border-white/10 pt-4">
+          <div className="mt-6 flex flex-wrap items-end justify-between gap-3 border-t border-white/10 pt-4">
             <div>
               <p className="text-xs text-zinc-500">Duração</p>
               <p className="mt-1 text-sm text-zinc-300">{servico.duracao} minutos</p>
             </div>
-            <div className="text-right">
+            <div className="min-w-0 text-right">
               <p className="text-xs text-zinc-500">Preço</p>
               <p className="mt-1 text-xl font-bold text-[#C9A227]">
                 {Number(servico.preco).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
@@ -462,7 +463,7 @@ function ListaBarbeirosPublicos({
             <Icon name="user" className="h-6 w-6" />
           </div>
           <div className="min-w-0">
-            <h3 className="truncate font-bold text-white transition group-hover:text-[#E0BB35]">{barbeiro.nome}</h3>
+            <h3 className="break-words font-bold text-white transition group-hover:text-[#E0BB35]">{barbeiro.nome}</h3>
             <p className="mt-1 text-sm text-zinc-400">
               {barbeiro.horario_abertura.slice(0, 5)}–{barbeiro.horario_fechamento.slice(0, 5)}
             </p>

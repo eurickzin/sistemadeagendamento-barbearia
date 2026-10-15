@@ -2,9 +2,10 @@
 
 import { ChangeEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/lib/neon/client";
 import Icon from "@/components/ui/Icon";
-import { getProfileImageStoragePath, uploadProfileImage } from "@/lib/profile-images";
+import { deleteProfileImage, uploadProfileImage } from "@/lib/profile-images";
+import { useDialogFocus } from "@/lib/useDialogFocus";
 
 interface Barbearia {
   id: string;
@@ -45,7 +46,7 @@ const DIAS_DA_SEMANA = [
 ];
 
 export default function ConfiguracoesPage() {
-  const supabase = createClient();
+  const neon = createClient();
   const router = useRouter();
 
   const [barbearia, setBarbearia] = useState<Barbearia | null>(null);
@@ -72,6 +73,18 @@ export default function ConfiguracoesPage() {
   const [confirmacaoRemocaoBarbeiroMarcada, setConfirmacaoRemocaoBarbeiroMarcada] = useState(false);
   const [removendoBarbeiro, setRemovendoBarbeiro] = useState(false);
   const [erroRemocaoBarbeiro, setErroRemocaoBarbeiro] = useState("");
+  const dialogConfiguracaoRef = useDialogFocus<HTMLElement>(Boolean(modalConfiguracao), () => {
+    if (!salvando && !salvandoBarbeiro) setModalConfiguracao(null);
+  });
+  const dialogImagemRef = useDialogFocus<HTMLElement>(Boolean(imagemParaRemover), () => {
+    if (!salvando) setImagemParaRemover(null);
+  });
+  const dialogBarbeiroRef = useDialogFocus<HTMLElement>(Boolean(barbeiroParaRemover), () => {
+    if (!removendoBarbeiro) {
+      setBarbeiroParaRemover(null);
+      setConfirmacaoRemocaoBarbeiroMarcada(false);
+    }
+  });
 
   useEffect(() => {
     async function carregarConfiguracoes() {
@@ -82,21 +95,22 @@ export default function ConfiguracoesPage() {
         const {
           data: { user },
           error: usuarioError,
-        } = await supabase.auth.getUser();
+        } = await neon.auth.getUser();
 
         if (usuarioError || !user) {
           throw new Error("Usuário não autenticado.");
         }
 
-        let { data, error } = await supabase
+        const resultadoBarbearia = await neon
           .from("barbearias")
           .select("id, nome, slug, telefone, descricao, logo_url, capa_url, instagram, endereco, horario_abertura, horario_fechamento, dia_folga, horarios_funcionamento")
           .eq("proprietario_id", user.id)
           .maybeSingle();
+        let data = resultadoBarbearia.data;
 
-        if (error) {
-          // Permite abrir a tela mesmo quando as colunas extras ainda não foram criadas no Supabase.
-          const resultadoBasico = await supabase
+        if (resultadoBarbearia.error) {
+          // Permite abrir a tela mesmo quando as colunas extras ainda não foram criadas no neon.
+          const resultadoBasico = await neon
             .from("barbearias")
             .select("id, nome, slug, telefone, descricao, logo_url, dia_folga")
             .eq("proprietario_id", user.id)
@@ -132,7 +146,7 @@ export default function ConfiguracoesPage() {
         setDiaFolga(data.dia_folga);
         setProprietarioId(user.id);
 
-        const { data: equipe, error: erroEquipeBanco } = await supabase
+        const { data: equipe, error: erroEquipeBanco } = await neon
           .from("barbeiros")
           .select("id, nome, ativo, horario_abertura, horario_fechamento, dia_folga")
           .eq("barbearia_id", data.id)
@@ -140,11 +154,11 @@ export default function ConfiguracoesPage() {
 
         if (erroEquipeBanco) {
           console.error("Erro ao carregar barbeiros:", erroEquipeBanco);
-          setErroEquipe("Não foi possível carregar a equipe. Confira se supabase/barbeiros.sql já foi executado no Supabase.");
+          setErroEquipe("Não foi possível carregar a equipe. Confira se neon/barbeiros.sql já foi executado no neon.");
         } else {
           const hoje = new Date();
           const dataHoje = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-${String(hoje.getDate()).padStart(2, "0")}`;
-          const { data: agendamentosEmAberto, error: erroAgendamentosEquipe } = await supabase
+          const { data: agendamentosEmAberto, error: erroAgendamentosEquipe } = await neon
             .from("agendamentos")
             .select("barbeiro_id")
             .eq("barbearia_id", data.id)
@@ -156,7 +170,7 @@ export default function ConfiguracoesPage() {
             setBarbeiros((equipe ?? []) as Barbeiro[]);
           } else {
             const barbeirosComAgendamento = new Set(
-              (agendamentosEmAberto ?? []).map((agendamento) => agendamento.barbeiro_id).filter(Boolean),
+              (agendamentosEmAberto ?? []).map((agendamento: { barbeiro_id: string | null }) => agendamento.barbeiro_id).filter(Boolean),
             );
             setBarbeiros(((equipe ?? []) as Barbeiro[]).filter((barbeiro) =>
               barbeiro.ativo || barbeirosComAgendamento.has(barbeiro.id),
@@ -183,7 +197,7 @@ export default function ConfiguracoesPage() {
     }
 
     carregarConfiguracoes();
-  }, [supabase]);
+  }, [neon]);
 
   useEffect(() => {
     if (modalConfiguracao !== "equipe" || !barbearia) return;
@@ -193,7 +207,7 @@ export default function ConfiguracoesPage() {
     async function atualizarBarbeirosSemAgenda() {
       const hoje = new Date();
       const dataHoje = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-${String(hoje.getDate()).padStart(2, "0")}`;
-      const { data: agendamentosEmAberto, error } = await supabase
+      const { data: agendamentosEmAberto, error } = await neon
         .from("agendamentos")
         .select("barbeiro_id")
         .eq("barbearia_id", barbeariaIdEquipe)
@@ -202,7 +216,7 @@ export default function ConfiguracoesPage() {
 
       if (!ativo || error) return;
       const barbeirosComAgendamento = new Set(
-        (agendamentosEmAberto ?? []).map((agendamento) => agendamento.barbeiro_id).filter(Boolean),
+        (agendamentosEmAberto ?? []).map((agendamento: { barbeiro_id: string | null }) => agendamento.barbeiro_id).filter(Boolean),
       );
       setBarbeiros((atuais) => atuais.filter((barbeiro) =>
         barbeiro.ativo || barbeirosComAgendamento.has(barbeiro.id),
@@ -215,7 +229,7 @@ export default function ConfiguracoesPage() {
       ativo = false;
       window.clearInterval(intervalo);
     };
-  }, [modalConfiguracao, barbearia?.id, supabase]);
+  }, [modalConfiguracao, barbearia?.id, neon]);
 
   async function salvarConfiguracoes(): Promise<boolean> {
     if (!barbearia) {
@@ -250,7 +264,7 @@ const dadosAtualizacao = {
   } : {}),
 };
 
-const { error } = await supabase
+const { error } = await neon
   .from("barbearias")
   .update(dadosAtualizacao)
   .eq("id", barbearia.id);
@@ -281,7 +295,7 @@ const { error } = await supabase
       setMensagem(
         camposAvancadosDisponiveis
           ? "Configurações salvas com sucesso."
-          : "Dados básicos salvos. Execute o SQL de personalização no Supabase para habilitar capa, Instagram, endereço e horários."
+          : "Dados básicos salvos. Execute o SQL de personalização no neon para habilitar capa, Instagram, endereço e horários."
       );
       return true;
     } catch (error) {
@@ -313,14 +327,14 @@ const { error } = await supabase
     setSalvando(true);
     setErro(null);
     setMensagem(null);
-    const { error: erroSalvar } = await supabase
+    const { error: erroSalvar } = await neon
       .from("barbearias")
       .update({ horarios_funcionamento: horariosSemana })
       .eq("id", barbearia.id);
     setSalvando(false);
     if (erroSalvar) {
       setErro(erroSalvar.code === "42703" || erroSalvar.code === "PGRST204"
-        ? "Aplique a migração supabase/horarios-funcionamento.sql no Supabase para habilitar os horários por dia."
+        ? "Aplique a migração neon/horarios-funcionamento.sql no neon para habilitar os horários por dia."
         : "Não foi possível salvar os horários de funcionamento.");
       return;
     }
@@ -342,7 +356,7 @@ const { error } = await supabase
       setErro(null);
       setMensagem(null);
       const url = await uploadProfileImage(file, proprietarioId, campo === "logo_url" ? "barbershop-logo" : "barbershop-cover");
-      const { error: salvarImagemError } = await supabase
+      const { error: salvarImagemError } = await neon
         .from("barbearias")
         .update({ [campo]: url })
         .eq("proprietario_id", proprietarioId);
@@ -372,7 +386,7 @@ const { error } = await supabase
     setErro(null);
     setMensagem(null);
     try {
-      const { data: imagemAtualizada, error: atualizarError } = await supabase
+      const { data: imagemAtualizada, error: atualizarError } = await neon
         .from("barbearias")
         .update({ [campo]: null })
         .eq("id", barbearia.id)
@@ -389,18 +403,13 @@ const { error } = await supabase
       atualizar(campo, null);
       setImagemParaRemover(null);
 
-      const path = getProfileImageStoragePath(url);
-      const nomeArquivoEsperado = campo === "logo_url" ? "barbershop-logo-" : "barbershop-cover-";
-      if (path?.startsWith(`${proprietarioId}/${nomeArquivoEsperado}`)) {
-        const { error: removerArquivoError } = await supabase.storage
-          .from("profile-images")
-          .remove([path]);
-        if (removerArquivoError) {
-          setMensagem(campo === "logo_url"
-            ? "Foto removida do perfil. O arquivo antigo não pôde ser apagado do armazenamento."
-            : "Capa removida do perfil. O arquivo antigo não pôde ser apagado do armazenamento.");
-          return;
-        }
+      try {
+        await deleteProfileImage(url, proprietarioId);
+      } catch {
+        setMensagem(campo === "logo_url"
+          ? "Foto removida do perfil. O arquivo antigo não pôde ser apagado do armazenamento."
+          : "Capa removida do perfil. O arquivo antigo não pôde ser apagado do armazenamento.");
+        return;
       }
 
       setMensagem(campo === "logo_url" ? "Foto do perfil removida com sucesso." : "Capa removida com sucesso.");
@@ -428,7 +437,7 @@ const { error } = await supabase
     setSalvandoBarbeiro("novo");
     setErroEquipe("");
     setMensagemEquipe("");
-    const { data, error } = await supabase
+    const { data, error } = await neon
       .from("barbeiros")
       .insert({
         barbearia_id: barbearia.id,
@@ -442,7 +451,7 @@ const { error } = await supabase
 
     if (error) {
       console.error("Erro ao cadastrar barbeiro:", error);
-      setErroEquipe("Não foi possível cadastrar o barbeiro. Confira as permissões e a migração supabase/barbeiros.sql.");
+      setErroEquipe("Não foi possível cadastrar o barbeiro. Confira as permissões e a migração neon/barbeiros.sql.");
     } else {
       setBarbeiros((atuais) => [...atuais, data as Barbeiro].sort((a, b) => a.nome.localeCompare(b.nome)));
       setNomeNovoBarbeiro("");
@@ -461,7 +470,7 @@ const { error } = await supabase
     setSalvandoBarbeiro(barbeiro.id);
     setErroEquipe("");
     setMensagemEquipe("");
-    const { error } = await supabase
+    const { error } = await neon
       .from("barbeiros")
       .update({
         nome: barbeiro.nome.trim(),
@@ -497,7 +506,7 @@ const { error } = await supabase
     setErroEquipe("");
     setMensagemEquipe("");
 
-    const { count, error: erroHistorico } = await supabase
+    const { count, error: erroHistorico } = await neon
       .from("agendamentos")
       .select("id", { count: "exact", head: true })
       .eq("barbearia_id", barbearia.id)
@@ -512,7 +521,7 @@ const { error } = await supabase
 
     if ((count ?? 0) > 0) {
       if (barbeiro.ativo) {
-        const { data: barbeiroAtualizado, error } = await supabase
+        const { data: barbeiroAtualizado, error } = await neon
           .from("barbeiros")
           .update({ ativo: false })
           .eq("id", barbeiro.id)
@@ -522,7 +531,7 @@ const { error } = await supabase
 
         if (error || !barbeiroAtualizado) {
           console.error("Erro ao desativar barbeiro com histórico:", error);
-          setErroRemocaoBarbeiro("Não foi possível remover este barbeiro. Confira as permissões do Supabase.");
+          setErroRemocaoBarbeiro("Não foi possível remover este barbeiro. Confira as permissões do neon.");
           setRemovendoBarbeiro(false);
           return;
         }
@@ -531,7 +540,7 @@ const { error } = await supabase
       }
       setMensagemEquipe(`${barbeiro.nome} foi removido da equipe ativa. O histórico de ${count} ${count === 1 ? "agendamento foi preservado" : "agendamentos foi preservado"}.`);
     } else {
-      const { data, error } = await supabase
+      const { data, error } = await neon
         .from("barbeiros")
         .delete()
         .eq("id", barbeiro.id)
@@ -541,7 +550,7 @@ const { error } = await supabase
 
       if (error || !data) {
         console.error("Erro ao excluir barbeiro:", error);
-        setErroRemocaoBarbeiro("Não foi possível excluir o barbeiro. Confira as permissões do Supabase.");
+        setErroRemocaoBarbeiro("Não foi possível excluir o barbeiro. Confira as permissões do neon.");
         setRemovendoBarbeiro(false);
         return;
       }
@@ -558,7 +567,7 @@ const { error } = await supabase
 
   async function sair() {
     setSaindo(true);
-    const { error: erroSaida } = await supabase.auth.signOut();
+    const { error: erroSaida } = await neon.auth.signOut();
     if (erroSaida) {
       setErro("Não foi possível sair da conta. Tente novamente.");
       setSaindo(false);
@@ -674,7 +683,7 @@ const { error } = await supabase
       </div>
 
       {modalConfiguracao === "horarios" && <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/70 p-0 backdrop-blur-sm sm:items-center sm:p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setModalConfiguracao(null); }}>
-        <section role="dialog" aria-modal="true" aria-labelledby="titulo-modal-horarios" className="settings-page max-h-[92dvh] w-full max-w-2xl space-y-5 overflow-y-auto rounded-t-2xl border border-zinc-800 bg-[#10151C] p-4 shadow-2xl sm:rounded-2xl sm:p-6">
+        <section ref={dialogConfiguracaoRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="titulo-modal-horarios" className="settings-page max-h-[92dvh] w-full max-w-2xl space-y-5 overflow-y-auto overscroll-contain rounded-t-2xl border border-zinc-800 bg-[#10151C] p-4 shadow-2xl sm:rounded-2xl sm:p-6">
           <div className="flex items-start justify-between gap-3"><div><p className="text-sm text-zinc-500">Configurações</p><h2 id="titulo-modal-horarios" className="mt-1 text-lg font-semibold text-white">Horários de funcionamento</h2><p className="mt-1 text-sm text-zinc-500">Escolha os dias e horários em que a barbearia recebe clientes.</p></div><button type="button" aria-label="Fechar horários" onClick={() => setModalConfiguracao(null)} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 text-xl text-zinc-400 hover:bg-white/5 hover:text-white">×</button></div>
           {erro && <p role="alert" className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">{erro}</p>}
           <div className="space-y-2">
@@ -693,7 +702,7 @@ const { error } = await supabase
       </div>}
 
       {modalConfiguracao === "perfil" && <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/70 p-0 backdrop-blur-sm sm:items-center sm:p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setModalConfiguracao(null); }}>
-      <section role="dialog" aria-modal="true" aria-labelledby="titulo-modal-perfil" className="settings-page max-h-[92dvh] w-full max-w-4xl space-y-5 overflow-y-auto rounded-t-2xl border border-zinc-800 bg-[#10151C] p-4 shadow-2xl sm:rounded-2xl sm:p-6">
+      <section ref={dialogConfiguracaoRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="titulo-modal-perfil" className="settings-page max-h-[92dvh] w-full max-w-4xl space-y-5 overflow-y-auto overscroll-contain rounded-t-2xl border border-zinc-800 bg-[#10151C] p-4 shadow-2xl sm:rounded-2xl sm:p-6">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
 
@@ -713,7 +722,7 @@ const { error } = await supabase
         </div>
         {erro && <p role="alert" className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">{erro}</p>}
         {mensagem && <p role="status" className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm text-emerald-300">{mensagem}</p>}
-        {!camposAvancadosDisponiveis && <p className="border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-200">Os campos avançados ainda não existem no banco. Execute <strong>supabase/profile-customization.sql</strong> no SQL Editor do Supabase para habilitar capa, Instagram, endereço e horários personalizados.</p>}
+        {!camposAvancadosDisponiveis && <p className="border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-200">Os campos avançados ainda não existem no banco. Execute <strong>neon/profile-customization.sql</strong> no SQL Editor do neon para habilitar capa, Instagram, endereço e horários personalizados.</p>}
         {barbearia && <>
           {barbearia.capa_url && <img src={barbearia.capa_url} alt="Capa da barbearia" className="h-36 w-full object-cover sm:h-48" />}
           <div className="grid gap-4 sm:grid-cols-2">
@@ -743,7 +752,7 @@ const { error } = await supabase
       </div>}
 
       {imagemParaRemover && <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 p-4" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !salvando) setImagemParaRemover(null); }}>
-        <section role="dialog" aria-modal="true" aria-labelledby="remover-imagem-titulo" className="w-full max-w-md border border-zinc-700 bg-[#10151C] p-6 shadow-2xl">
+        <section ref={dialogImagemRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="remover-imagem-titulo" className="max-h-[92dvh] w-full max-w-md overflow-y-auto overscroll-contain border border-zinc-700 bg-[#10151C] p-6 shadow-2xl">
           <h2 id="remover-imagem-titulo" className="text-lg font-semibold text-white">Remover {imagemParaRemover === "logo_url" ? "foto do perfil" : "capa"}?</h2>
           <p className="mt-2 text-sm leading-6 text-zinc-400">Essa imagem deixará de aparecer no perfil público da barbearia.</p>
           <div className="mt-6 flex justify-end gap-3">
@@ -755,7 +764,7 @@ const { error } = await supabase
 
       {/* EQUIPE */}
       {modalConfiguracao === "equipe" && <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/70 p-0 backdrop-blur-sm sm:items-center sm:p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setModalConfiguracao(null); }}>
-      <section role="dialog" aria-modal="true" aria-labelledby="titulo-modal-equipe" className="settings-page max-h-[92dvh] w-full max-w-4xl space-y-5 overflow-y-auto rounded-t-2xl border border-zinc-800 bg-[#10151C] p-4 shadow-2xl sm:rounded-2xl sm:p-6">
+      <section ref={dialogConfiguracaoRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="titulo-modal-equipe" className="settings-page max-h-[92dvh] w-full max-w-4xl space-y-5 overflow-y-auto overscroll-contain rounded-t-2xl border border-zinc-800 bg-[#10151C] p-4 shadow-2xl sm:rounded-2xl sm:p-6">
         <div className="flex items-start justify-between gap-3">
           <div>
           <h2 id="titulo-modal-equipe" className="text-lg font-semibold text-white">Barbeiros</h2>
@@ -888,7 +897,7 @@ const { error } = await supabase
       </div>}
 
       {barbeiroParaRemover && <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/75 p-0 backdrop-blur-sm sm:items-center sm:p-4" onMouseDown={(event) => { if (event.target === event.currentTarget && !removendoBarbeiro) { setBarbeiroParaRemover(null); setConfirmacaoRemocaoBarbeiroMarcada(false); } }}>
-        <section role="alertdialog" aria-modal="true" aria-labelledby="titulo-remover-barbeiro" aria-describedby="descricao-remover-barbeiro" className="my-auto w-full max-w-md rounded-t-2xl border border-red-500/25 bg-[#10151C] p-5 text-white shadow-2xl sm:rounded-2xl sm:p-6" onClick={(event) => event.stopPropagation()}>
+        <section ref={dialogBarbeiroRef} tabIndex={-1} role="alertdialog" aria-modal="true" aria-labelledby="titulo-remover-barbeiro" aria-describedby="descricao-remover-barbeiro" className="my-auto max-h-[92dvh] w-full max-w-md overflow-y-auto overscroll-contain rounded-t-2xl border border-red-500/25 bg-[#10151C] p-5 text-white shadow-2xl sm:rounded-2xl sm:p-6" onClick={(event) => event.stopPropagation()}>
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-red-300">Equipe</p>

@@ -30,7 +30,7 @@ export default function CatalogoBarbearias({
   return (
     <main className="min-h-screen bg-[#0B0F14] text-white">
       <header className="border-b border-white/10">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 py-4 pl-4 pr-14 sm:gap-4 sm:py-5 sm:pl-5 sm:pr-16">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 py-4 pl-4 pr-14 sm:gap-4 sm:py-5 sm:pl-5 sm:pr-16">
           <Link href="/" className="text-xl font-black tracking-tight">
             Na Régua<span className="text-[#C9A227]">+</span>
           </Link>
@@ -123,7 +123,8 @@ export default function CatalogoBarbearias({
 
         {erroInicial ? (
           <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-6 text-red-300">
-            Não foi possível carregar as barbearias. Tente novamente mais tarde.
+            <p role="alert">Não foi possível carregar as barbearias.</p>
+            <button type="button" onClick={() => window.location.reload()} className="mt-3 min-h-11 font-semibold text-[#E0BB35]">Tentar novamente</button>
           </div>
         ) : barbeariasFiltradas.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-white/15 px-6 py-14 text-center">
@@ -176,7 +177,7 @@ export default function CatalogoBarbearias({
                 </div>
 
                 <div className="flex min-w-0 flex-1 flex-col items-start p-3 sm:p-4">
-                  <h3 className="w-full truncate text-base font-bold transition group-hover:text-[#C9A227] sm:text-lg">
+                  <h3 className="w-full break-words text-base font-bold transition group-hover:text-[#C9A227] sm:text-lg">
                     {barbearia.nome}
                   </h3>
 
@@ -187,7 +188,7 @@ export default function CatalogoBarbearias({
 
                   <Link
                     href={`/barbearia/${barbearia.slug}`}
-                    className="mt-2 inline-flex min-h-8 items-center justify-center gap-1.5 rounded-lg bg-[#C9A227] px-3 py-1.5 text-xs font-bold text-black transition hover:bg-[#E0BB35]"
+                    className="mt-2 inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg bg-[#C9A227] px-3 py-1.5 text-xs font-bold text-black transition hover:bg-[#E0BB35]"
                   >
                     Ver barbearia
                     <span aria-hidden="true">→</span>

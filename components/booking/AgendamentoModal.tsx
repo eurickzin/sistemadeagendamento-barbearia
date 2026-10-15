@@ -1,10 +1,11 @@
 
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { createClient } from "@/lib/neon/client";
 import Icon from "@/components/ui/Icon";
 import OAuthButtons from "@/components/auth/OAuthButtons";
+import { useDialogFocus } from "@/lib/useDialogFocus";
 
 interface Servico {
   id: number;
@@ -24,11 +25,8 @@ interface Barbeiro {
 type HorarioFuncionamento = { aberto: boolean; abertura: string; fechamento: string };
 
 interface Agendamento {
-  id: number;
   horario: string;
-  servico_id: number | null;
-  servico_duracao: number | null;
-  data: string;
+  servico_duracao: number;
   barbeiro_id: string | null;
 }
 
@@ -43,7 +41,7 @@ interface AgendamentoModalProps {
   barbeiroInicialId?: string | null;
 }
 
-const supabase = createClient();
+const neon = createClient();
 
 const NOMES_MESES = [
   "janeiro",
@@ -125,8 +123,13 @@ export default function AgendamentoModal({
   const [horariosFuncionamento, setHorariosFuncionamento] = useState<HorarioFuncionamento[] | null>(null);
 
   const [carregandoServicos, setCarregandoServicos] = useState(false);
+  const [falhaServicos, setFalhaServicos] = useState(false);
   const [carregandoHorarios, setCarregandoHorarios] = useState(false);
+  const [erroHorarios, setErroHorarios] = useState(false);
+  const [tentativaHorarios, setTentativaHorarios] = useState(0);
+  const [tentativaServicos, setTentativaServicos] = useState(0);
   const [salvando, setSalvando] = useState(false);
+  const salvandoRef = useRef(false);
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState(false);
 
@@ -144,6 +147,11 @@ const [senhaCadastro, setSenhaCadastro] = useState("");
 const [erroCadastro, setErroCadastro] = useState("");
 const [sucessoCadastro, setSucessoCadastro] = useState(false);
 const [carregandoCadastro, setCarregandoCadastro] = useState(false);
+  const dialogRef = useDialogFocus<HTMLElement>(aberto, fecharSePossivel);
+
+  function fecharSePossivel() {
+    if (!salvandoRef.current) onFechar();
+  }
 
   const servicoSelecionado = servicos.find(
     (servico) => servico.id === servicoSelecionadoId
@@ -221,6 +229,7 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
 
     async function carregarDados() {
       setCarregandoServicos(true);
+      setFalhaServicos(false);
       setErro("");
       setErroLogin("");
       setSucesso(false);
@@ -239,7 +248,7 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
       const {
         data: dadosServicos,
         error: erroServicos,
-      } = await supabase
+      } = await neon
         .from("servicos")
         .select("id, nome, preco, duracao, barbearia_id")
         .eq("barbearia_id", barbeariaId!)
@@ -250,7 +259,7 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
 
       if (erroServicos) {
         console.error(erroServicos);
-        setErro("Não foi possível carregar os serviços.");
+        setFalhaServicos(true);
         setServicos([]);
         setCarregandoServicos(false);
         return;
@@ -268,14 +277,14 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
         servicoInicialExiste ? servicoInicialId! : null
       );
 
-      let { data: dadosBarbearia, error: erroBarbearia } = await supabase
+      let { data: dadosBarbearia, error: erroBarbearia } = await neon
         .from("barbearias")
         .select("dia_folga, horario_abertura, horario_fechamento, horarios_funcionamento")
         .eq("id", barbeariaId!)
         .maybeSingle();
 
       if (erroBarbearia) {
-        const resultadoBasico = await supabase
+        const resultadoBasico = await neon
           .from("barbearias")
           .select("dia_folga")
           .eq("id", barbeariaId!)
@@ -301,7 +310,7 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
       setHorarioFechamento(dadosBarbearia?.horario_fechamento?.slice(0, 5) ?? "21:00");
       setHorariosFuncionamento(Array.isArray(dadosBarbearia?.horarios_funcionamento) ? dadosBarbearia.horarios_funcionamento as HorarioFuncionamento[] : null);
 
-      const { data: equipe, error: erroEquipe } = await supabase
+      const { data: equipe, error: erroEquipe } = await neon
         .from("barbeiros")
         .select("id, nome, horario_abertura, horario_fechamento, dia_folga")
         .eq("barbearia_id", barbeariaId!)
@@ -332,7 +341,7 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
     return () => {
       cancelado = true;
     };
-  }, [aberto, barbeariaId, servicoInicialId, barbeiroInicialId]);
+  }, [aberto, barbeariaId, servicoInicialId, barbeiroInicialId, tentativaServicos]);
 
   useEffect(() => {
     if (!aberto || !barbeariaId || !dataSelecionada) return;
@@ -341,29 +350,19 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
 
     async function carregarAgendamentos() {
       setCarregandoHorarios(true);
+      setErroHorarios(false);
       setErro("");
 
-      let consulta = supabase
-        .from("agendamentos")
-        .select(barbeiroSelecionadoId
-          ? "id, horario, servico_id, servico_duracao, data, barbeiro_id"
-          : "id, horario, servico_id, servico_duracao, data")
-        .eq("barbearia_id", barbeariaId!)
-        .eq("data", dataSelecionada)
-        .neq("status", "cancelado");
-      if (barbeiroSelecionadoId) {
-        consulta = consulta.or(`barbeiro_id.eq.${barbeiroSelecionadoId},barbeiro_id.is.null`);
-      }
-      const { data, error } = await consulta;
+      const { data, error } = await neon.rpc("naregua_ocupacao", {
+        p_barbearia_id: barbeariaId!, p_data: dataSelecionada,
+      });
 
       if (cancelado) return;
 
       if (error) {
         console.error(error);
         setAgendamentos([]);
-        setErro(
-          "Não foi possível consultar os horários. Tente novamente."
-        );
+        setErroHorarios(true);
       } else {
         setAgendamentos((data ?? []) as unknown as Agendamento[]);
       }
@@ -376,7 +375,7 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
     return () => {
       cancelado = true;
     };
-  }, [aberto, barbeariaId, dataSelecionada, barbeiroSelecionadoId]);
+  }, [aberto, barbeariaId, dataSelecionada, barbeiroSelecionadoId, tentativaHorarios]);
 
   function selecionarServico(id: number) {
     setServicoSelecionadoId(id);
@@ -461,12 +460,7 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
 
       const inicioExistente = minutosDoHorario(agendamento.horario);
 
-      const servicoExistente = servicos.find(
-        (servico) => servico.id === agendamento.servico_id
-      );
-
-      const duracaoExistente = servicoExistente?.duracao ?? agendamento.servico_duracao ?? 30;
-      const fimExistente = inicioExistente + duracaoExistente;
+      const fimExistente = inicioExistente + agendamento.servico_duracao;
 
       return (
         inicioNovo < fimExistente &&
@@ -493,13 +487,12 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
     setCarregandoLogin(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { error } = await neon.auth.signInWithPassword({
         email: emailLogin,
         password: senhaLogin,
       });
 
       if (error) {
-        console.error(error);
         setErroLogin(
           "Não foi possível entrar. Confira seu e-mail e sua senha."
         );
@@ -513,8 +506,7 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
 
       // O serviço, a data e o horário continuam selecionados.
       // O cliente pode confirmar a reserva sem sair do modal.
-    } catch (error) {
-      console.error(error);
+    } catch {
       setErroLogin("Ocorreu um erro ao tentar entrar.");
     } finally {
       setCarregandoLogin(false);
@@ -549,15 +541,12 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
       const query = parametros.toString();
       const destino = query ? `${caminho}?${query}` : caminho;
 
-      const { data, error } = await supabase.auth.signUp({
+      const { data, error } = await neon.auth.signUp({
         email: emailCadastro.trim(),
         password: senhaCadastro,
         options: {
-          data: {
-            nome: nomeCadastro.trim(),
-            telefone: telefoneCadastro.trim(),
-          },
-          emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(destino)}`,
+          data: { displayName: nomeCadastro.trim(), phone: telefoneCadastro.trim() },
+          emailRedirectTo: `${window.location.origin}${destino}`,
         },
       });
 
@@ -568,6 +557,18 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
             : "Não foi possível criar a conta. Confira os dados e tente novamente."
         );
         return;
+      }
+
+      if (data.user && data.session) {
+        const { error: profileError } = await neon.from("profiles").upsert({
+          id: data.user.id,
+          nome: nomeCadastro.trim(),
+          telefone: telefoneCadastro.trim(),
+        }, { onConflict: "id" });
+        if (profileError) {
+          setErroCadastro("Conta criada, mas não foi possível salvar seu perfil. Entre e complete seus dados nas configurações.");
+          return;
+        }
       }
 
       // Com a confirmação de e-mail habilitada, não criamos
@@ -582,6 +583,7 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
   }
 
   async function confirmarAgendamento() {
+    if (salvandoRef.current || erroHorarios || carregandoHorarios) return;
     setErro("");
 
     if (!barbeariaId) {
@@ -614,13 +616,14 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
       return;
     }
 
+    salvandoRef.current = true;
     setSalvando(true);
 
     try {
       const {
         data: { user },
         error: erroUsuario,
-      } = await supabase.auth.getUser();
+      } = await neon.auth.getUser();
 
       if (erroUsuario || !user) {
         setMostrarLogin(true);
@@ -638,18 +641,9 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
       }
 
       // Consulta novamente os agendamentos antes de salvar.
-      let consultaConflitos = supabase
-        .from("agendamentos")
-        .select(barbeiroSelecionadoId
-          ? "id, horario, servico_id, servico_duracao, data, barbeiro_id"
-          : "id, horario, servico_id, servico_duracao, data")
-        .eq("barbearia_id", barbeariaId)
-        .eq("data", dataSelecionada)
-        .neq("status", "cancelado");
-      if (barbeiroSelecionadoId) {
-        consultaConflitos = consultaConflitos.or(`barbeiro_id.eq.${barbeiroSelecionadoId},barbeiro_id.is.null`);
-      }
-      const { data: conflitos, error: erroConflitos } = await consultaConflitos;
+      const { data: conflitos, error: erroConflitos } = await neon.rpc("naregua_ocupacao", {
+        p_barbearia_id: barbeariaId, p_data: dataSelecionada,
+      });
 
       if (erroConflitos) {
         throw new Error(
@@ -670,13 +664,8 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
           agendamento.barbeiro_id !== barbeiroSelecionadoId
         ) return false;
 
-        const servicoExistente = servicos.find(
-          (servico) => servico.id === agendamento.servico_id
-        );
-
         const inicioExistente = minutosDoHorario(agendamento.horario);
-        const fimExistente =
-          inicioExistente + (servicoExistente?.duracao ?? agendamento.servico_duracao ?? 30);
+        const fimExistente = inicioExistente + agendamento.servico_duracao;
 
         return (
           inicioNovo < fimExistente &&
@@ -690,7 +679,7 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
         return;
       }
 
-      const { error: erroInsercao } = await supabase
+      const { error: erroInsercao } = await neon
         .from("agendamentos")
         .insert({
           usuario_id: user.id,
@@ -703,36 +692,20 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
         });
 
       if (erroInsercao) {
-        console.error("Erro ao inserir agendamento:", JSON.stringify({
-          code: erroInsercao.code,
-          message: erroInsercao.message,
-          details: erroInsercao.details,
-          hint: erroInsercao.hint,
-          barbeariaId,
-          barbeiroId: barbeiroSelecionadoId,
-          data: dataSelecionada,
-          horario: horarioSelecionado,
-        }));
+        console.error("Erro ao confirmar agendamento:", erroInsercao.code);
 
-        if (erroInsercao.code === "23505") {
-          const nomeRestricao = erroInsercao.message.match(/constraint "([^"]+)"/i)?.[1];
-          if (
-            nomeRestricao &&
-            nomeRestricao !== "agendamentos_barbeiro_horario_unique" &&
-            nomeRestricao !== "agendamentos_sem_barbeiro_horario_unique"
-          ) {
-            setErro(`O banco bloqueou a reserva pela regra "${nomeRestricao}". Reexecute supabase/barbeiros.sql no Supabase para atualizar os horários por barbeiro.`);
-            setHorarioSelecionado("");
-            return;
-          }
-
-          setErro("Esse horário acabou de ser reservado para esse barbeiro. Escolha outro horário ou profissional.");
+        if (erroInsercao.code === "23505" || erroInsercao.code === "23P01") {
+          setErro("Esse intervalo acabou de ser reservado. Escolha outro horário ou profissional.");
           setHorarioSelecionado("");
           return;
         }
 
         if (erroInsercao.code === "23503" || erroInsercao.code === "23514") {
-          setErro("O barbeiro selecionado não está mais disponível. Atualize a página e tente novamente.");
+          setErro("A opção selecionada não está mais disponível. Confira serviço, profissional, data e horário.");
+          return;
+        }
+        if (erroInsercao.code === "42501") {
+          setErro("Sua sessão não permite confirmar esta reserva. Entre novamente.");
           return;
         }
 
@@ -740,7 +713,11 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
       }
 
       setSucesso(true);
-      await onAgendamentoCriado();
+      try {
+        await onAgendamentoCriado();
+      } catch (refreshError) {
+        console.error("Reserva criada, mas a lista não foi atualizada:", refreshError);
+      }
     } catch (error) {
       console.error(error);
 
@@ -750,6 +727,7 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
           : "Ocorreu um erro ao realizar o agendamento."
       );
     } finally {
+      salvandoRef.current = false;
       setSalvando(false);
     }
   }
@@ -799,18 +777,20 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
 
   return (
     <div
-      className="fixed inset-0 z-[10002] flex items-stretch justify-center overflow-y-auto bg-black/80 p-0 backdrop-blur-sm sm:items-center sm:p-4"
-      onClick={onFechar}
+      className="fixed inset-0 z-[10002] flex h-dvh items-stretch justify-center overflow-y-auto bg-black/80 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+      onClick={fecharSePossivel}
     >
       <section
+        ref={dialogRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-labelledby="titulo-agendamento"
-        className="my-auto min-h-full w-full max-w-xl overflow-y-auto border border-[#C9A227]/20 bg-[#0B0F14] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] text-white sm:min-h-0 sm:max-h-[90vh] sm:p-6"
+        className="my-auto min-h-dvh w-full max-w-xl overflow-y-auto overscroll-contain border border-[#C9A227]/20 bg-[#0B0F14] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] text-white sm:min-h-0 sm:max-h-[90dvh] sm:p-6"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="mb-6 flex items-center justify-between gap-4">
-          <div>
+        <div className="mb-6 flex flex-wrap items-start justify-between gap-3 sm:gap-4">
+          <div className="min-w-0 flex-1">
             <p className="mb-1 text-xs font-semibold uppercase tracking-[0.25em] text-[#C9A227]">
               Na Régua+
             </p>
@@ -836,7 +816,8 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
               <button
                 type="button"
                 onClick={onVoltarParaBusca}
-                className="inline-flex min-h-11 items-center gap-2 border border-white/10 px-3 text-sm font-medium text-zinc-300 transition hover:border-[#C9A227]/40 hover:text-white"
+                disabled={salvando}
+                className="inline-flex min-h-11 items-center gap-2 border border-white/10 px-3 text-sm font-medium text-zinc-300 transition hover:border-[#C9A227]/40 hover:text-white disabled:opacity-50"
               >
                 <span aria-hidden="true">←</span>
                 Busca
@@ -844,9 +825,10 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
             )}
             <button
               type="button"
-              onClick={onFechar}
+              onClick={fecharSePossivel}
+              disabled={salvando}
               aria-label="Fechar modal"
-              className="rounded-lg px-3 py-2 text-xl text-zinc-400 transition hover:bg-white/10 hover:text-white"
+              className="rounded-lg px-3 py-2 text-xl text-zinc-400 transition hover:bg-white/10 hover:text-white disabled:opacity-50"
             >
               ×
             </button>
@@ -899,7 +881,7 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
             </p>
             <button
               type="button"
-              onClick={onFechar}
+              onClick={fecharSePossivel}
               className="mt-6 min-h-12 w-full bg-[#C9A227] px-6 py-3 font-bold text-[#0B0F14] transition hover:bg-[#E0BB35]"
             >
               Concluir
@@ -1181,9 +1163,10 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
             Carregando serviços...
           </p>
         ) : servicos.length === 0 ? (
-          <p className="py-8 text-center text-zinc-400">
-            Não há serviços disponíveis nesta barbearia.
-          </p>
+          <div className="py-8 text-center text-zinc-400">
+            <p>{falhaServicos ? "Não foi possível carregar os serviços." : "Não há serviços disponíveis nesta barbearia."}</p>
+            {falhaServicos && <button type="button" onClick={() => setTentativaServicos((valor) => valor + 1)} className="mt-4 min-h-11 px-4 font-semibold text-[#E0BB35]">Tentar novamente</button>}
+          </div>
         ) : (
           <>
             {fluxoBarbeiroPrimeiro && seletorBarbeiro}
@@ -1203,6 +1186,7 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
                     <button
                       key={servico.id}
                       type="button"
+                      aria-pressed={selecionado}
                       onClick={() => selecionarServico(servico.id)}
                       className={`rounded-xl border p-4 text-left transition ${
                         selecionado
@@ -1210,12 +1194,12 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
                           : "border-white/10 bg-[#11151B] hover:border-white/30"
                       }`}
                     >
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="font-semibold">
+                      <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
+                        <span className="min-w-0 break-words font-semibold">
                           {servico.nome}
                         </span>
 
-                        <span className="font-bold text-[#C9A227]">
+                        <span className="shrink-0 font-bold text-[#C9A227]">
                           {formatarPreco(servico.preco)}
                         </span>
                       </div>
@@ -1313,7 +1297,7 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
                   <p className="text-xs text-zinc-500">
                     Data selecionada
                   </p>
-                  <p className="mt-1 text-sm font-semibold capitalize text-[#E0BB35]">
+                  <p aria-live="polite" className="mt-1 text-sm font-semibold capitalize text-[#E0BB35]">
                     {formatarData(dataSelecionada)}
                   </p>
                 </div>
@@ -1336,6 +1320,11 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
                 <p className="py-3 text-sm text-zinc-400">
                   Consultando horários...
                 </p>
+              ) : erroHorarios ? (
+                <div className="text-sm text-red-300" role="alert">
+                  <p>Não foi possível consultar os horários disponíveis.</p>
+                  <button type="button" onClick={() => setTentativaHorarios((valor) => valor + 1)} className="mt-2 min-h-11 font-semibold text-[#E0BB35]">Tentar novamente</button>
+                </div>
               ) : barbeiros.length > 1 && !barbeiroSelecionado ? (
                 <p className="text-sm text-zinc-400">Escolha um barbeiro para consultar os horários disponíveis.</p>
               ) : !servicoSelecionado ? (
@@ -1371,6 +1360,7 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
                           key={horario}
                           type="button"
                           disabled={!disponivel}
+                          aria-pressed={selecionado}
                           onClick={() => {
                             setHorarioSelecionado(horario);
                             setErro("");
@@ -1398,8 +1388,8 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
                   Resumo do agendamento
                 </p>
 
-                <div className="mt-3 flex items-start justify-between gap-3">
-                  <div>
+                <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0 break-words">
                     <p className="font-semibold">
                       {servicoSelecionado.nome}
                     </p>
@@ -1441,6 +1431,7 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
               disabled={
                 salvando ||
                 carregandoHorarios ||
+                erroHorarios ||
                 (barbeiros.length > 1 && !barbeiroSelecionadoId) ||
                 !servicoSelecionado ||
                 !horarioSelecionado ||
@@ -1451,8 +1442,14 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
               {salvando ? "Confirmando..." : "Confirmar agendamento"}
             </button>
 
-            <p className="mt-3 text-center text-xs leading-5 text-zinc-500">
-              A confirmação depende da disponibilidade do horário.
+            <p aria-live="polite" className="mt-3 text-center text-xs leading-5 text-zinc-500">
+              {!servicoSelecionado
+                ? "Escolha um serviço para continuar."
+                : barbeiros.length > 1 && !barbeiroSelecionadoId
+                  ? "Escolha um profissional para consultar os horários."
+                  : !horarioSelecionado && !erroHorarios
+                    ? "Escolha um horário disponível para confirmar."
+                    : "A confirmação depende da disponibilidade do horário."}
             </p>
           </>
         )}

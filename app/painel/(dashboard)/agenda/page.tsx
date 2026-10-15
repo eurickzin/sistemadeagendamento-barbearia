@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/lib/neon/client";
 import Icon from "@/components/ui/Icon";
+import { useDialogFocus } from "@/lib/useDialogFocus";
 
 interface Servico {
   nome: string;
@@ -74,7 +75,7 @@ function obterDataLocal() {
 // =========================================================
 
 export default function AgendaPage() {
-  const supabase = createClient();
+  const neon = createClient();
 
   const [dataSelecionada, setDataSelecionada] = useState(
     obterDataLocal()
@@ -95,6 +96,15 @@ export default function AgendaPage() {
     useState<Agendamento | null>(null);
   const [confirmacaoCancelamentoMarcada, setConfirmacaoCancelamentoMarcada] =
     useState(false);
+  const [erroCancelamento, setErroCancelamento] = useState("");
+  const [mensagemAgenda, setMensagemAgenda] = useState("");
+  const dialogCancelamentoRef = useDialogFocus<HTMLElement>(Boolean(cancelamentoSelecionado), () => {
+    if (processandoId === null) {
+      setCancelamentoSelecionado(null);
+      setConfirmacaoCancelamentoMarcada(false);
+      setErroCancelamento("");
+    }
+  });
 
   // =========================================================
   // CARREGAR AGENDA
@@ -112,7 +122,7 @@ export default function AgendaPage() {
       const {
         data: { user },
         error: usuarioError,
-      } = await supabase.auth.getUser();
+      } = await neon.auth.getUser();
 
       if (usuarioError) {
         console.error("Erro ao verificar usuário:", usuarioError);
@@ -135,7 +145,7 @@ export default function AgendaPage() {
       const {
         data: barbeariaData,
         error: barbeariaError,
-      } = await supabase
+      } = await neon
         .from("barbearias")
         .select("id, nome")
         .eq("proprietario_id", user.id)
@@ -176,7 +186,7 @@ export default function AgendaPage() {
       const {
         data: agendamentosData,
         error: agendamentosError,
-      } = await supabase
+      } = await neon
         .from("agendamentos")
         .select(`
           id,
@@ -237,7 +247,7 @@ export default function AgendaPage() {
         const {
           data: clientesData,
           error: clientesError,
-        } = await supabase
+        } = await neon
           .from("profiles")
           .select("id, nome, telefone")
           .in("id", idsUsuarios);
@@ -250,7 +260,7 @@ export default function AgendaPage() {
         } else {
           clientesMap = new Map(
             (clientesData ?? []).map(
-              (cliente) => [
+              (cliente: Cliente) => [
                 cliente.id,
                 cliente as Cliente,
               ]
@@ -322,7 +332,8 @@ export default function AgendaPage() {
   // =========================================================
 
   useEffect(() => {
-    carregarAgenda();
+    const timer = window.setTimeout(() => { void carregarAgenda(); }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   // =========================================================
@@ -625,7 +636,7 @@ export default function AgendaPage() {
 
       const {
         error,
-      } = await supabase
+      } = await neon
         .from("agendamentos")
         .update({
           status: novoStatus,
@@ -638,18 +649,21 @@ export default function AgendaPage() {
           error
         );
 
-        alert(
-          "Não foi possível atualizar o agendamento."
-        );
+        setErroCancelamento("Não foi possível atualizar o agendamento. Tente novamente.");
 
         return false;
       }
 
-      await carregarAgenda();
+      setAgendamentos((atuais) => atuais.map((agendamento) =>
+        agendamento.id === id ? { ...agendamento, status: novoStatus } : agendamento
+      ));
+      setMensagemAgenda(novoStatus === "cancelado"
+        ? "Agendamento cancelado. O horário voltou a ficar disponível."
+        : "Agendamento marcado como concluído.");
       return true;
     } catch (error) {
       console.error("Erro ao atualizar status:", error);
-      alert("Não foi possível atualizar o agendamento.");
+      setErroCancelamento("Não foi possível atualizar o agendamento. Tente novamente.");
       return false;
     } finally {
       setProcessandoId(null);
@@ -658,6 +672,7 @@ export default function AgendaPage() {
 
   async function confirmarCancelamento() {
     if (!cancelamentoSelecionado || !confirmacaoCancelamentoMarcada) return;
+    setErroCancelamento("");
 
     const cancelado = await atualizarStatus(
       cancelamentoSelecionado.id,
@@ -771,6 +786,7 @@ export default function AgendaPage() {
         </button>
 
       </div>
+      {mensagemAgenda && <p role="status" className="border border-[#C9A227]/30 bg-[#C9A227]/10 p-3 text-sm text-[#E0BB35]">{mensagemAgenda}</p>}
 
       {/* =====================================================
           BARBEARIA
@@ -973,6 +989,7 @@ export default function AgendaPage() {
           <p className="mt-1 text-sm text-red-400/80">
             {erro}
           </p>
+          <button type="button" onClick={() => void carregarAgenda()} className="mt-3 min-h-11 font-semibold text-[#E0BB35]">Tentar novamente</button>
 
         </div>
 
@@ -1132,14 +1149,14 @@ export default function AgendaPage() {
 
                             {/* NOME */}
 
-                            <h3 className="mt-1 truncate text-sm font-semibold text-white sm:mt-2 sm:text-base">
+                            <h3 className="mt-1 break-words text-sm font-semibold text-white sm:mt-2 sm:text-base">
                               {agendamento.cliente?.nome ??
                                 "Cliente"}
                             </h3>
 
                             {/* SERVIÇO */}
 
-                            <p className="mt-0.5 truncate text-xs text-zinc-400 sm:mt-1 sm:text-sm sm:text-zinc-500">
+                            <p className="mt-0.5 break-words text-xs text-zinc-400 sm:mt-1 sm:text-sm sm:text-zinc-500">
                               {agendamento.servico?.nome ?? "Serviço não informado"}
                               {agendamento.servico?.preco != null && (
                                 <span className="text-zinc-500"> · {formatarPreco(agendamento.servico.preco)}</span>
@@ -1332,11 +1349,13 @@ export default function AgendaPage() {
           }}
         >
           <section
+            ref={dialogCancelamentoRef}
+            tabIndex={-1}
             role="alertdialog"
             aria-modal="true"
             aria-labelledby="titulo-confirmar-cancelamento"
             aria-describedby="descricao-confirmar-cancelamento"
-            className="my-auto w-full max-w-md border border-red-500/30 bg-[#0B0F14] p-5 text-white shadow-2xl sm:p-7"
+            className="my-auto max-h-[92dvh] w-full max-w-md overflow-y-auto overscroll-contain border border-red-500/30 bg-[#0B0F14] p-5 text-white shadow-2xl sm:p-7"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mb-5 flex items-start gap-4 border-b border-white/10 pb-5">
@@ -1390,6 +1409,7 @@ export default function AgendaPage() {
               />
               <span>Confirmo que quero cancelar este agendamento.</span>
             </label>
+            {erroCancelamento && <p role="alert" className="mt-3 text-sm text-red-300">{erroCancelamento}</p>}
 
             <div className="mt-5 grid grid-cols-2 gap-3">
               <button

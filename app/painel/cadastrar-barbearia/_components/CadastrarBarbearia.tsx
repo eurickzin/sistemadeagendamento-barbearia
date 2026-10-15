@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/lib/neon/client";
 import Icon from "@/components/ui/Icon";
 
 export default function CadastrarBarbearia() {
@@ -50,11 +50,11 @@ export default function CadastrarBarbearia() {
     setCarregando(true);
 
     try {
-      const supabase = createClient();
+      const neon = createClient();
 
       const {
         data: { user },
-      } = await supabase.auth.getUser();
+      } = await neon.auth.getUser();
 
       if (!user) {
         router.replace("/painel/login");
@@ -62,7 +62,7 @@ export default function CadastrarBarbearia() {
       }
 
       const { data: barbeariaExistente, error: consultaError } =
-        await supabase
+        await neon
           .from("barbearias")
           .select("id")
           .eq("proprietario_id", user.id)
@@ -79,7 +79,7 @@ export default function CadastrarBarbearia() {
         return;
       }
 
-      const { error } = await supabase.from("barbearias").insert({
+      const { error } = await neon.from("barbearias").insert({
         nome: nome.trim(),
         slug: slug.trim(),
         telefone: telefone.trim() || null,

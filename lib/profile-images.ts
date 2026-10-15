@@ -1,16 +1,19 @@
-import { createClient } from "@/lib/supabase/client";
-
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
 export function getProfileImageStoragePath(publicUrl: string) {
   try {
     const url = new URL(publicUrl);
-    const prefix = "/storage/v1/object/public/profile-images/";
-    const pathStart = url.pathname.indexOf(prefix);
-    if (pathStart === -1) return null;
+    const endpoint = process.env.AWS_ENDPOINT_URL_S3;
+    if (!endpoint || url.origin !== new URL(endpoint).origin) return null;
+    const prefix = "/profile-images/";
+    if (!url.pathname.startsWith(prefix)) return null;
 
-    const encodedPath = url.pathname.slice(pathStart + prefix.length);
-    return encodedPath.split("/").map(decodeURIComponent).join("/");
+    const encodedPath = url.pathname.slice(prefix.length);
+    const parts = encodedPath.split("/").map(decodeURIComponent);
+    if (parts.length !== 2 || parts.some((part) =>
+      !part || part === "." || part === ".." || /[/\\\u0000-\u001f\u007f]/.test(part)
+    )) return null;
+    return parts.join("/");
   } catch {
     return null;
   }
@@ -29,22 +32,33 @@ export async function uploadProfileImage(
     throw new Error("A imagem deve ter no máximo 5 MB.");
   }
 
-  const extension = file.type.split("/")[1].replace("jpeg", "jpg");
-  const path = `${userId}/${purpose}-${Date.now()}.${extension}`;
-  const supabase = createClient();
-  const { error } = await supabase.storage
-    .from("profile-images")
-    .upload(path, file, { contentType: file.type, cacheControl: "3600" });
-
-  if (error) {
-    const mensagem = error.message.toLowerCase();
-    if (mensagem.includes("bucket") && (mensagem.includes("not found") || mensagem.includes("does not exist"))) {
-      throw new Error("O armazenamento de imagens ainda não foi configurado. Execute supabase/profile-customization.sql no SQL Editor do Supabase.");
-    }
-    if (mensagem.includes("row-level security") || mensagem.includes("permission") || mensagem.includes("policy")) {
-      throw new Error("O Supabase bloqueou o envio por falta de permissão. Execute as políticas de armazenamento de supabase/profile-customization.sql.");
-    }
-    throw new Error(`Falha no envio da imagem: ${error.message}`);
+  const form = new FormData();
+  form.set("file", file);
+  form.set("purpose", purpose);
+  const response = await fetch("/api/profile-image", { method: "POST", body: form });
+  const result = await response.json() as { url?: string; error?: string };
+  if (!response.ok || !result.url) {
+    throw new Error(result.error ?? "Não foi possível enviar a imagem.");
   }
-  return supabase.storage.from("profile-images").getPublicUrl(path).data.publicUrl;
+  const path = getProfileImageStoragePath(result.url);
+  if (!path?.startsWith(`${userId}/${purpose}-`)) {
+    throw new Error("O caminho da imagem enviada é inválido.");
+  }
+  return result.url;
+}
+
+export async function deleteProfileImage(publicUrl: string, userId: string) {
+  const key = getProfileImageStoragePath(publicUrl);
+  if (!key || !key.startsWith(`${userId}/`)) {
+    throw new Error("A imagem não pertence a esta conta.");
+  }
+  const response = await fetch("/api/profile-image", {
+    method: "DELETE",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ url: publicUrl }),
+  });
+  if (!response.ok) {
+    const result = await response.json() as { error?: string };
+    throw new Error(result.error ?? "Não foi possível remover a imagem.");
+  }
 }

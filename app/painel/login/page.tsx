@@ -3,7 +3,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/lib/neon/client";
 import Icon from "@/components/ui/Icon";
 import OAuthButtons from "@/components/auth/OAuthButtons";
 
@@ -21,8 +21,8 @@ export default function LoginBarbeiroPage() {
     let ativo = true;
     async function validarSessaoOAuth() {
       setCarregando(true);
-      const supabase = createClient();
-      const { data: { user }, error: usuarioError } = await supabase.auth.getUser();
+      const neon = createClient();
+      const { data: { user }, error: usuarioError } = await neon.auth.getUser();
       if (!ativo) return;
       if (usuarioError || !user) {
         setCarregando(false);
@@ -30,7 +30,7 @@ export default function LoginBarbeiroPage() {
         return;
       }
 
-      const { data: barbearia, error: barbeariaError } = await supabase
+      const { data: barbearia, error: barbeariaError } = await neon
         .from("barbearias")
         .select("ativa")
         .eq("proprietario_id", user.id)
@@ -42,7 +42,7 @@ export default function LoginBarbeiroPage() {
       } else if (!barbearia) {
         router.replace("/painel/cadastrar-barbearia");
       } else if (!barbearia.ativa) {
-        await supabase.auth.signOut();
+        await neon.auth.signOut();
         if (!ativo) return;
         setCarregando(false);
         setErro("Sua barbearia está desativada no momento.");
@@ -62,17 +62,18 @@ export default function LoginBarbeiroPage() {
     setErro("");
     setCarregando(true);
 
-    const supabase = createClient();
+    const neon = createClient();
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await neon.auth.signInWithPassword({
         email,
         password: senha,
       });
 
       if (error) {
-        console.error("ERRO LOGIN BARBEIRO:", error);
-        setErro("E-mail ou senha incorretos.");
+        setErro(
+          "Confira seu e-mail e sua senha. Contas antigas do Supabase não foram transferidas para o Neon; crie uma conta pelo botão “Agendar” na página inicial."
+        );
         return;
       }
 
@@ -81,7 +82,7 @@ export default function LoginBarbeiroPage() {
         return;
       }
 
-      const { data: barbearia, error: barbeariaError } = await supabase
+      const { data: barbearia, error: barbeariaError } = await neon
         .from("barbearias")
         .select("id, nome, ativa")
         .eq("proprietario_id", data.user.id)
@@ -102,15 +103,14 @@ export default function LoginBarbeiroPage() {
 
       // Impede o acesso ao painel se a barbearia estiver desativada.
       if (!barbearia.ativa) {
-        await supabase.auth.signOut();
+        await neon.auth.signOut();
         setErro("Sua barbearia está desativada no momento.");
         return;
       }
 
       router.replace("/painel");
       router.refresh();
-    } catch (error) {
-      console.error("ERRO INESPERADO NO LOGIN:", error);
+    } catch {
       setErro("Ocorreu um erro inesperado. Tente novamente.");
     } finally {
       setCarregando(false);

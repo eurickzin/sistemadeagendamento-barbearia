@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/lib/neon/client";
 import Icon from "@/components/ui/Icon";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 
@@ -31,7 +31,7 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const supabase = createClient();
+  const neon = createClient();
 
   const [barbearia, setBarbearia] = useState<Barbearia | null>(null);
   const [carregando, setCarregando] = useState(true);
@@ -44,14 +44,14 @@ export default function DashboardLayout({
     async function carregarBarbearia() {
       const {
         data: { user },
-      } = await supabase.auth.getUser();
+      } = await neon.auth.getUser();
 
       if (!user) {
         router.replace("/painel/login");
         return;
       }
 
-      const { data, error } = await supabase
+      const { data, error } = await neon
         .from("barbearias")
         .select("id, nome, logo_url, slug")
         .eq("proprietario_id", user.id)
@@ -69,7 +69,7 @@ export default function DashboardLayout({
     }
 
     carregarBarbearia();
-  }, [router, supabase]);
+  }, [router, neon]);
 
   useEffect(() => {
     const barbeariaId = barbearia?.id;
@@ -79,13 +79,13 @@ export default function DashboardLayout({
 
     async function carregarNotificacoes() {
       const [lista, contagem] = await Promise.all([
-        supabase
+        neon
           .from("notificacoes_barbeiro")
           .select("id, titulo, mensagem, agendamento_id, lida_em, created_at")
           .eq("barbearia_id", barbeariaId)
           .order("created_at", { ascending: false })
           .limit(20),
-        supabase
+        neon
           .from("notificacoes_barbeiro")
           .select("id", { count: "exact", head: true })
           .eq("barbearia_id", barbeariaId)
@@ -104,11 +104,11 @@ export default function DashboardLayout({
 
         const mensagemErro = erroBanco.message?.toLowerCase() ?? "";
         if (erroBanco.code === "PGRST205" || erroBanco.code === "42P01" || mensagemErro.includes("notificacoes_barbeiro")) {
-          setErroNotificacoes("A tabela de notificações ainda não está disponível. Execute supabase/notificacoes-barbeiro.sql no SQL Editor do Supabase.");
+          setErroNotificacoes("A tabela de notificações ainda não está disponível. Aplique as migrações Neon do projeto.");
         } else if (erroBanco.code === "42501") {
-          setErroNotificacoes("O Supabase bloqueou o acesso às notificações. Execute novamente supabase/notificacoes-barbeiro.sql para aplicar as permissões.");
+          setErroNotificacoes("O banco bloqueou o acesso às notificações. Confira as políticas da migração Neon.");
         } else {
-          setErroNotificacoes("Não foi possível carregar as notificações. Confira a configuração do Supabase.");
+          setErroNotificacoes("Não foi possível carregar as notificações. Confira a configuração do Neon.");
         }
         return;
       }
@@ -119,31 +119,18 @@ export default function DashboardLayout({
     }
 
     void carregarNotificacoes();
-
-    const canal = supabase
-      .channel(`notificacoes-barbearia-${barbeariaId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "notificacoes_barbeiro",
-          filter: `barbearia_id=eq.${barbeariaId}`,
-        },
-        () => void carregarNotificacoes(),
-      )
-      .subscribe();
+    const timer = window.setInterval(() => void carregarNotificacoes(), 30_000);
 
     return () => {
       ativo = false;
-      void supabase.removeChannel(canal);
+      window.clearInterval(timer);
     };
-  }, [barbearia?.id, supabase]);
+  }, [barbearia?.id, neon]);
 
   async function marcarNotificacaoComoLida(notificacao: Notificacao) {
     if (!notificacao.lida_em) {
       const lidaEm = new Date().toISOString();
-      const { error } = await supabase
+      const { error } = await neon
         .from("notificacoes_barbeiro")
         .update({ lida_em: lidaEm })
         .eq("id", notificacao.id)
@@ -168,7 +155,7 @@ export default function DashboardLayout({
     if (!barbearia || totalNaoLidas === 0) return;
 
     const lidaEm = new Date().toISOString();
-    const { error } = await supabase
+    const { error } = await neon
       .from("notificacoes_barbeiro")
       .update({ lida_em: lidaEm })
       .eq("barbearia_id", barbearia.id)

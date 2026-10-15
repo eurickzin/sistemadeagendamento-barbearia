@@ -1,5 +1,5 @@
 import CatalogoBarbearias from "./_components/CatalogoBarbearias";
-import { carregarCatalogoPublico } from "@/lib/supabase/public-data";
+import { carregarCatalogoPublico } from "@/lib/neon/public-data";
 
 interface Barbearia {
   id: string;

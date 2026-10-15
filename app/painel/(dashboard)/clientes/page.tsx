@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/lib/neon/client";
 import Icon from "@/components/ui/Icon";
 
 interface PerfilCliente {
@@ -96,7 +96,7 @@ function textoStatus(status: string) {
 }
 
 export default function ClientesPage() {
-  const supabase = useMemo(() => createClient(), []);
+  const neon = useMemo(() => createClient(), []);
   const [clientes, setClientes] = useState<ClienteComHistorico[]>([]);
   const [busca, setBusca] = useState("");
   const [carregando, setCarregando] = useState(true);
@@ -109,7 +109,7 @@ export default function ClientesPage() {
       setCarregando(true);
       setErro(null);
 
-      const { data: { user }, error: erroUsuario } = await supabase.auth.getUser();
+      const { data: { user }, error: erroUsuario } = await neon.auth.getUser();
       if (erroUsuario || !user) {
         if (ativo) {
           setErro("Não foi possível identificar sua conta. Entre novamente no painel.");
@@ -118,7 +118,7 @@ export default function ClientesPage() {
         return;
       }
 
-      const { data: barbearia, error: erroBarbearia } = await supabase
+      const { data: barbearia, error: erroBarbearia } = await neon
         .from("barbearias")
         .select("id")
         .eq("proprietario_id", user.id)
@@ -132,7 +132,7 @@ export default function ClientesPage() {
         return;
       }
 
-      const { data: dadosAgendamentos, error: erroAgendamentos } = await supabase
+      const { data: dadosAgendamentos, error: erroAgendamentos } = await neon
         .from("agendamentos")
         .select(`
           id,
@@ -162,7 +162,7 @@ export default function ClientesPage() {
       let mapaPerfis = new Map<string, PerfilCliente>();
 
       if (ids.length > 0) {
-        const { data: perfis, error: erroPerfis } = await supabase
+        const { data: perfis, error: erroPerfis } = await neon
           .from("profiles")
           .select("id, nome, telefone")
           .in("id", ids);
@@ -170,7 +170,7 @@ export default function ClientesPage() {
         if (erroPerfis) {
           console.error("Erro ao carregar dados dos clientes:", erroPerfis);
         } else {
-          mapaPerfis = new Map((perfis ?? []).map((perfil) => [perfil.id, perfil as PerfilCliente]));
+          mapaPerfis = new Map((perfis ?? []).map((perfil: PerfilCliente) => [perfil.id, perfil]));
         }
       }
 
@@ -199,7 +199,7 @@ export default function ClientesPage() {
 
     void carregarClientes();
     return () => { ativo = false; };
-  }, [supabase]);
+  }, [neon]);
 
   const clientesFiltrados = useMemo(() => {
     const termo = busca.trim().toLocaleLowerCase("pt-BR");

@@ -5,7 +5,7 @@ import PaginaPublicaBarbearia, {
 import {
   carregarBarbeariaPublica,
   carregarServicosEBarbeirosPublicos,
-} from "@/lib/supabase/public-data";
+} from "@/lib/neon/public-data";
 
 export default async function PaginaBarbearia({
   params,

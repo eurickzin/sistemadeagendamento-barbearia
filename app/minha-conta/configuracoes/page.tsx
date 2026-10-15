@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/lib/neon/client";
 import { uploadProfileImage } from "@/lib/profile-images";
 import Icon from "@/components/ui/Icon";
 
@@ -33,11 +33,14 @@ export default function ConfiguracoesClientePage() {
         router.replace("/");
         return;
       }
-      setNome(user.user_metadata?.nome || user.user_metadata?.name || "");
-      setTelefone(user.user_metadata?.telefone ?? "");
+      const { data: perfil } = await createClient().from("profiles")
+        .select("nome, telefone, avatar_url, barbearias_favoritas")
+        .eq("id", user.id).maybeSingle();
+      setNome(perfil?.nome || user.user_metadata?.displayName || "");
+      setTelefone(perfil?.telefone ?? user.user_metadata?.phone ?? "");
       setEmail(user.email ?? "");
-      setAvatarUrl(user.user_metadata?.avatar_url ?? "");
-      const salvas = user.user_metadata?.barbearias_favoritas;
+      setAvatarUrl(perfil?.avatar_url ?? user.user_metadata?.profileImageUrl ?? "");
+      const salvas = perfil?.barbearias_favoritas;
       setFavoritas(Array.isArray(salvas) ? salvas.filter(
         (item): item is BarbeariaFavorita => typeof item?.id === "string" && typeof item?.nome === "string" && typeof item?.slug === "string",
       ) : []);
@@ -52,20 +55,16 @@ export default function ConfiguracoesClientePage() {
     setErro("");
     setMensagem("");
     try {
-      const supabase = createClient();
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      const neon = createClient();
+      const { data: { user }, error: userError } = await neon.auth.getUser();
       if (userError || !user) throw new Error("Faça login novamente para editar seu perfil.");
       const nomeSalvo = nome.trim();
       const telefoneSalvo = telefone.trim();
-      const { error: profileError } = await supabase.from("profiles").upsert(
-        { id: user.id, nome: nomeSalvo, telefone: telefoneSalvo },
+      const { error: profileError } = await neon.from("profiles").upsert(
+        { id: user.id, nome: nomeSalvo, telefone: telefoneSalvo, avatar_url: avatarUrl, barbearias_favoritas: favoritas },
         { onConflict: "id" },
       );
-      if (profileError) throw new Error("Não foi possível atualizar seu perfil. Confira as permissões do Supabase.");
-      const { error: updateError } = await supabase.auth.updateUser({
-        data: { nome: nomeSalvo, telefone: telefoneSalvo, avatar_url: avatarUrl, barbearias_favoritas: favoritas },
-      });
-      if (updateError) throw new Error("Não foi possível salvar os dados da conta.");
+      if (profileError) throw new Error("Não foi possível atualizar seu perfil. Tente novamente.");
       setMensagem("Perfil atualizado com sucesso.");
     } catch (saveError) {
       setErro(saveError instanceof Error ? saveError.message : "Erro ao salvar perfil.");

@@ -127,13 +127,10 @@ export default function CalendarioCustomizado({
       return;
     }
 
-    setMesAtual(
-      new Date(
-        ano,
-        mes - 1,
-        1
-      )
-    );
+    const timer = window.setTimeout(() => {
+      setMesAtual(new Date(ano, mes - 1, 1));
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [value]);
 
   // =========================================================
@@ -356,7 +353,7 @@ export default function CalendarioCustomizado({
           // =================================================
           // DIA DE FOLGA
           //
-          // Agora vem do Supabase.
+          // Agora vem do neon.
           //
           // Exemplo:
           // diaFolga = 1 → Segunda

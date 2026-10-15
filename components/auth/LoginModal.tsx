@@ -2,8 +2,9 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/lib/neon/client";
 import OAuthButtons from "@/components/auth/OAuthButtons";
+import { useDialogFocus } from "@/lib/useDialogFocus";
 
 interface LoginModalProps {
   aberto: boolean;
@@ -23,6 +24,7 @@ export default function LoginModal({
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState("");
   const [carregando, setCarregando] = useState(false);
+  const dialogRef = useDialogFocus<HTMLDivElement>(aberto, fecharModal);
 
   async function handleLogin(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -31,17 +33,17 @@ export default function LoginModal({
     setSucesso("");
     setCarregando(true);
 
-    const supabase = createClient();
+    const neon = createClient();
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { error } = await neon.auth.signInWithPassword({
       email,
       password: senha,
     });
 
     if (error) {
-      console.error("ERRO AO FAZER LOGIN:", error);
-
-      setErro("E-mail ou senha incorretos.");
+      setErro(
+        "Confira seu e-mail e sua senha. Se você ainda não tem uma conta no Neon, crie uma pelo formulário de cadastro."
+      );
       setCarregando(false);
       return;
     }
@@ -67,7 +69,8 @@ export default function LoginModal({
 
   return (
     <div
-      className={`fixed inset-0 z-[9999] flex h-screen w-screen items-center justify-center overflow-y-auto bg-black/80 px-4 py-8 backdrop-blur-md transition-all duration-300 ease-out ${
+      inert={!aberto}
+      className={`fixed inset-0 z-[9999] flex h-dvh w-screen items-center justify-center overflow-y-auto bg-black/80 px-4 py-4 backdrop-blur-md transition-all duration-300 ease-out sm:py-8 ${
         aberto
           ? "pointer-events-auto opacity-100"
           : "pointer-events-none opacity-0"
@@ -75,7 +78,12 @@ export default function LoginModal({
       onClick={fecharModal}
     >
       <div
-        className={`relative my-auto w-full max-w-md overflow-hidden rounded-xl border border-white/10 bg-[#0B0F14] shadow-2xl shadow-black/50 transition-all duration-300 ease-out ${
+        ref={dialogRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal={aberto}
+        aria-labelledby="titulo-login-cliente"
+        className={`relative my-auto max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto overscroll-contain rounded-xl border border-white/10 bg-[#0B0F14] shadow-2xl shadow-black/50 transition-all duration-300 ease-out ${
           aberto ? "translate-y-0 scale-100" : "translate-y-3 scale-95"
         }`}
         onClick={(e) => e.stopPropagation()}
@@ -97,7 +105,7 @@ export default function LoginModal({
               RK BARBER.
             </p>
 
-            <h2 className="mt-3 text-3xl font-bold tracking-tight text-white">
+            <h2 id="titulo-login-cliente" className="mt-3 text-3xl font-bold tracking-tight text-white">
               Entrar na sua conta
             </h2>
 

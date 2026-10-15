@@ -2,8 +2,9 @@
 "use client";
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/lib/neon/client";
 import Icon from "@/components/ui/Icon";
+import { useDialogFocus } from "@/lib/useDialogFocus";
 
 interface Servico {
   id: number;
@@ -16,7 +17,7 @@ interface Servico {
   excluido_em: string | null;
 }
 
-const supabase = createClient();
+const neon = createClient();
 
 export default function ServicosPage() {
   const [barbeariaId, setBarbeariaId] = useState<string | null>(null);
@@ -39,16 +40,20 @@ export default function ServicosPage() {
   const [confirmarEsvaziarLixeira, setConfirmarEsvaziarLixeira] = useState(false);
   const [esvaziandoLixeira, setEsvaziandoLixeira] = useState(false);
   const [confirmacaoLixeiraMarcada, setConfirmacaoLixeiraMarcada] = useState(false);
+  const dialogExclusaoRef = useDialogFocus<HTMLElement>(Boolean(servicoParaExcluir), fecharConfirmacaoExclusao);
+  const dialogLixeiraRef = useDialogFocus<HTMLElement>(confirmarEsvaziarLixeira, () => {
+    if (!esvaziandoLixeira) setConfirmarEsvaziarLixeira(false);
+  });
 
   const carregarServicos = useCallback(async (id: string) => {
     const [ativos, arquivados] = await Promise.all([
-      supabase
+      neon
         .from("servicos")
         .select("id, nome, descricao, preco, duracao, ativo, barbearia_id, excluido_em")
         .eq("barbearia_id", id)
         .is("excluido_em", null)
         .order("created_at", { ascending: false }),
-      supabase
+      neon
         .from("servicos")
         .select("id, nome, descricao, preco, duracao, ativo, barbearia_id, excluido_em")
         .eq("barbearia_id", id)
@@ -70,14 +75,14 @@ export default function ServicosPage() {
       const {
         data: { user },
         error: erroAuth,
-      } = await supabase.auth.getUser();
+      } = await neon.auth.getUser();
 
       if (erroAuth || !user) {
         window.location.replace("/painel/login");
         return;
       }
 
-      const { data: barbearia, error: erroBarbearia } = await supabase
+      const { data: barbearia, error: erroBarbearia } = await neon
         .from("barbearias")
         .select("id")
         .eq("proprietario_id", user.id)
@@ -156,12 +161,12 @@ export default function ServicosPage() {
     };
 
     const resultado = editandoId !== null
-      ? await supabase
+      ? await neon
           .from("servicos")
           .update(dados)
           .eq("id", editandoId)
           .eq("barbearia_id", barbeariaId)
-      : await supabase
+      : await neon
           .from("servicos")
           .insert({
             ...dados,
@@ -194,7 +199,7 @@ export default function ServicosPage() {
     setErro("");
     setMensagem("");
 
-    const { error } = await supabase
+    const { error } = await neon
       .from("servicos")
       .update({ ativo: !servico.ativo })
       .eq("id", servico.id)
@@ -226,7 +231,7 @@ export default function ServicosPage() {
     setExcluindoServico(true);
     setErroExclusao("");
 
-    const { data: servicoExcluido, error } = await supabase
+    const { data: servicoExcluido, error } = await neon
       .from("servicos")
       .update({ ativo: false, excluido_em: new Date().toISOString() })
       .eq("id", servicoParaExcluir.id)
@@ -244,7 +249,7 @@ export default function ServicosPage() {
       setErroExclusao(
         error
           ? "Não foi possível remover o serviço. Confira as permissões do banco e tente novamente."
-          : "O banco não confirmou a remoção. Execute supabase/servicos-permissoes.sql no SQL Editor do Supabase e tente novamente."
+          : "O banco não confirmou a remoção. Execute neon/servicos-permissoes.sql no SQL Editor do neon e tente novamente."
       );
       setExcluindoServico(false);
       return;
@@ -268,7 +273,7 @@ export default function ServicosPage() {
 
   async function restaurarServico(servico: Servico) {
     if (!barbeariaId) return;
-    const { data, error } = await supabase
+    const { data, error } = await neon
       .from("servicos")
       .update({ excluido_em: null, ativo: false })
       .eq("id", servico.id)
@@ -277,7 +282,7 @@ export default function ServicosPage() {
       .maybeSingle();
 
     if (error || !data) {
-      setErro("Não foi possível restaurar o serviço. Confira as permissões do Supabase.");
+      setErro("Não foi possível restaurar o serviço. Confira as permissões do neon.");
       return;
     }
     await carregarServicos(barbeariaId);
@@ -288,7 +293,7 @@ export default function ServicosPage() {
     if (!barbeariaId || !confirmacaoLixeiraMarcada || !servicosArquivados.length) return;
     setEsvaziandoLixeira(true);
     setErro("");
-    const { data, error } = await supabase
+    const { data, error } = await neon
       .from("servicos")
       .delete()
       .eq("barbearia_id", barbeariaId)
@@ -297,7 +302,7 @@ export default function ServicosPage() {
 
     if (error) {
       console.error("Erro ao esvaziar lixeira:", error.message, error.code);
-      setErro("Não foi possível esvaziar a lixeira. Execute a versão atualizada de supabase/servicos-permissoes.sql no Supabase.");
+      setErro("Não foi possível esvaziar a lixeira. Execute a versão atualizada de neon/servicos-permissoes.sql no neon.");
       setEsvaziandoLixeira(false);
       return;
     }
@@ -560,11 +565,13 @@ export default function ServicosPage() {
           onClick={fecharConfirmacaoExclusao}
         >
           <section
+            ref={dialogExclusaoRef}
+            tabIndex={-1}
             role="alertdialog"
             aria-modal="true"
             aria-labelledby="titulo-confirmar-exclusao-servico"
             aria-describedby="descricao-confirmar-exclusao-servico"
-            className="my-auto w-full max-w-md border border-red-500/30 bg-[#0B0F14] p-5 text-white shadow-2xl sm:p-7"
+            className="my-auto max-h-[92dvh] w-full max-w-md overflow-y-auto overscroll-contain border border-red-500/30 bg-[#0B0F14] p-5 text-white shadow-2xl sm:p-7"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mb-5 flex items-start gap-4 border-b border-white/10 pb-5">
@@ -644,7 +651,7 @@ export default function ServicosPage() {
       )}
 
       {confirmarEsvaziarLixeira && <div className="fixed inset-0 z-[110] flex items-end justify-center overflow-y-auto bg-black/80 p-0 backdrop-blur-sm sm:items-center sm:p-4" onClick={() => !esvaziandoLixeira && setConfirmarEsvaziarLixeira(false)}>
-        <section role="alertdialog" aria-modal="true" aria-labelledby="titulo-esvaziar-lixeira" className="my-auto w-full max-w-md border border-red-500/30 bg-[#0B0F14] p-5 text-white shadow-2xl sm:p-7" onClick={(event) => event.stopPropagation()}>
+        <section ref={dialogLixeiraRef} tabIndex={-1} role="alertdialog" aria-modal="true" aria-labelledby="titulo-esvaziar-lixeira" className="my-auto max-h-[92dvh] w-full max-w-md overflow-y-auto overscroll-contain border border-red-500/30 bg-[#0B0F14] p-5 text-white shadow-2xl sm:p-7" onClick={(event) => event.stopPropagation()}>
           <h2 id="titulo-esvaziar-lixeira" className="text-xl font-bold">Esvaziar a lixeira?</h2>
           <p className="mt-2 text-sm leading-6 text-zinc-400">Os serviços arquivados serão apagados permanentemente. Os dados dos agendamentos anteriores continuarão salvos.</p>
           <label className="mt-5 flex cursor-pointer items-start gap-3 border border-white/10 p-4 text-sm leading-5 text-zinc-200">

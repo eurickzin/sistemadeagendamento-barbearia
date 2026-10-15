@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/lib/neon/client";
 import Icon from "@/components/ui/Icon";
+import { useDialogFocus } from "@/lib/useDialogFocus";
 
 export interface BarbeariaParaAgendar {
   id: string;
@@ -27,6 +28,7 @@ export default function BarbeariaPickerModal({
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState("");
   const [tentativa, setTentativa] = useState(0);
+  const dialogRef = useDialogFocus<HTMLElement>(aberto, onFechar);
 
   useEffect(() => {
     if (!aberto) return;
@@ -68,16 +70,18 @@ export default function BarbeariaPickerModal({
 
   return (
     <div
-      className="fixed inset-0 z-[10001] flex items-end justify-center overflow-y-auto bg-black/75 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+      className="fixed inset-0 z-[10001] flex h-dvh items-end justify-center overflow-y-auto bg-black/75 p-0 backdrop-blur-sm sm:items-center sm:p-4"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onFechar();
       }}
     >
       <section
+        ref={dialogRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-labelledby="titulo-escolher-barbearia"
-        className="my-auto max-h-[92dvh] w-full max-w-lg overflow-y-auto border border-[#C9A227]/20 bg-[#0B0F14] p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-white sm:p-6"
+        className="my-auto max-h-[92dvh] w-full max-w-lg overflow-y-auto overscroll-contain border border-[#C9A227]/20 bg-[#0B0F14] p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-white sm:p-6"
       >
         <div className="flex items-start justify-between gap-4">
           <div>

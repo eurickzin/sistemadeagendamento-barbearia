@@ -12,7 +12,7 @@ export default function ThemeToggle({ variant = "floating" }: { variant?: "float
   useEffect(() => {
     const savedTheme = window.localStorage.getItem("na-regua-theme");
     const nextTheme: Theme = savedTheme === "light" ? "light" : "dark";
-    setTheme(nextTheme);
+    const timer = window.setTimeout(() => setTheme(nextTheme), 0);
     document.documentElement.dataset.theme = nextTheme;
 
     function sincronizarTema(event: Event) {
@@ -21,7 +21,10 @@ export default function ThemeToggle({ variant = "floating" }: { variant?: "float
     }
 
     window.addEventListener("na-regua-theme-change", sincronizarTema);
-    return () => window.removeEventListener("na-regua-theme-change", sincronizarTema);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("na-regua-theme-change", sincronizarTema);
+    };
   }, []);
 
   function toggleTheme() {

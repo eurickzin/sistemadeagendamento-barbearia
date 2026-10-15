@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/lib/neon/client";
 import Icon from "@/components/ui/Icon";
 
 interface Barbearia {
@@ -39,11 +39,11 @@ export default function PainelPage() {
   const dataHoje = `${anoHoje}-${mesHoje}-${diaHoje}`;
 
   async function carregarPainel() {
-    const supabase = createClient();
+    const neon = createClient();
 
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+    } = await neon.auth.getUser();
 
     if (!user) {
       router.replace("/painel/login");
@@ -51,7 +51,7 @@ export default function PainelPage() {
     }
 
     const { data: barbeariaData, error: barbeariaError } =
-      await supabase
+      await neon
         .from("barbearias")
         .select("id, nome")
         .eq("proprietario_id", user.id)
@@ -85,13 +85,13 @@ export default function PainelPage() {
       `;
 
     const [resultadoHoje, resultadoFuturos] = await Promise.all([
-      supabase
+      neon
         .from("agendamentos")
         .select(camposAgendamento)
         .eq("barbearia_id", barbeariaData.id)
         .eq("data", dataHoje)
         .order("horario", { ascending: true }),
-      supabase
+      neon
         .from("agendamentos")
         .select(camposAgendamento)
         .eq("barbearia_id", barbeariaData.id)
@@ -131,7 +131,8 @@ export default function PainelPage() {
   }
 
   useEffect(() => {
-    carregarPainel();
+    const timer = window.setTimeout(() => { void carregarPainel(); }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   const agendamentosHoje = agendamentos

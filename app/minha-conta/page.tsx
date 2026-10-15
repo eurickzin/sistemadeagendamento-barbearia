@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/lib/neon/client";
 import { useRouter } from "next/navigation";
 import AgendamentoModal from "@/components/booking/AgendamentoModal";
 import BarbeariaPickerModal, { type BarbeariaParaAgendar } from "@/components/booking/BarbeariaPickerModal";
 import Icon from "@/components/ui/Icon";
+import { useDialogFocus } from "@/lib/useDialogFocus";
 
 interface Agendamento {
   id: number;
@@ -38,6 +39,8 @@ export default function MinhaContaPage() {
   const [nome, setNome] = useState("");
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
   const [carregando, setCarregando] = useState(true);
+  const [erroCarregamento, setErroCarregamento] = useState("");
+  const [mensagemConta, setMensagemConta] = useState("");
   const [agendamentoAberto, setAgendamentoAberto] = useState(false);
   const [cancelando, setCancelando] = useState<number | null>(null);
   const [agendamentoParaCancelar, setAgendamentoParaCancelar] = useState<Agendamento | null>(null);
@@ -47,28 +50,30 @@ export default function MinhaContaPage() {
   const [seletorBarbeariaAberto, setSeletorBarbeariaAberto] = useState(false);
   const [barbeariaSelecionada, setBarbeariaSelecionada] = useState<BarbeariaParaAgendar | null>(null);
   const [barbeariasFavoritas, setBarbeariasFavoritas] = useState<BarbeariaFavorita[]>([]);
+  const dialogCancelamentoRef = useDialogFocus<HTMLElement>(Boolean(agendamentoParaCancelar), fecharConfirmacaoCancelamento);
 
   // =========================
   // CARREGAR DADOS
   // =========================
 
   async function carregarDados() {
-    const supabase = createClient();
+    const neon = createClient();
 
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+    } = await neon.auth.getUser();
 
     if (!user) {
       router.push("/");
       return;
     }
 
-    const nomeUsuario =
-      user.user_metadata?.nome || user.user_metadata?.name || "";
+    const { data: perfil } = await neon.from("profiles")
+      .select("nome, barbearias_favoritas").eq("id", user.id).maybeSingle();
+    const nomeUsuario = perfil?.nome || user.user_metadata?.displayName || "";
 
     setNome(nomeUsuario);
-    const favoritasSalvas = user.user_metadata?.barbearias_favoritas;
+    const favoritasSalvas = perfil?.barbearias_favoritas;
     setBarbeariasFavoritas(
       Array.isArray(favoritasSalvas)
         ? favoritasSalvas.filter(
@@ -80,7 +85,7 @@ export default function MinhaContaPage() {
         : [],
     );
 
-    const { data, error } = await supabase
+    const { data, error } = await neon
       .from("agendamentos")
       .select(
         `
@@ -108,8 +113,7 @@ export default function MinhaContaPage() {
 
     if (error) {
       console.error("ERRO AO CARREGAR AGENDAMENTOS:", error);
-
-      setAgendamentos([]);
+      setErroCarregamento("Não foi possível carregar seus agendamentos. Tente novamente.");
     } else {
       setAgendamentos(((data as unknown as Agendamento[]) ?? []).map((agendamento) => ({
         ...agendamento,
@@ -126,7 +130,8 @@ export default function MinhaContaPage() {
   }
 
   useEffect(() => {
-    carregarDados();
+    const timer = window.setTimeout(() => { void carregarDados(); }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   // =========================
@@ -134,15 +139,15 @@ export default function MinhaContaPage() {
   // =========================
 
   async function recarregarAgendamentos() {
-    const supabase = createClient();
+    const neon = createClient();
 
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+    } = await neon.auth.getUser();
 
     if (!user) return;
 
-    const { data, error } = await supabase
+    const { data, error } = await neon
       .from("agendamentos")
       .select(
         `
@@ -189,11 +194,13 @@ export default function MinhaContaPage() {
     await recarregarAgendamentos();
     if (!barbeariaSelecionada) return;
 
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const neon = createClient();
+    const { data: { user } } = await neon.auth.getUser();
     if (!user) return;
 
-    const favoritasSalvas = user.user_metadata?.barbearias_favoritas;
+    const { data: perfil } = await neon.from("profiles")
+      .select("barbearias_favoritas").eq("id", user.id).maybeSingle();
+    const favoritasSalvas = perfil?.barbearias_favoritas;
     const favoritasAtuais: BarbeariaFavorita[] = Array.isArray(favoritasSalvas)
       ? favoritasSalvas.filter(
           (favorita): favorita is BarbeariaFavorita =>
@@ -207,9 +214,10 @@ export default function MinhaContaPage() {
       ...favoritasAtuais.filter((favorita) => favorita.id !== barbeariaSelecionada.id),
     ];
 
-    const { error } = await supabase.auth.updateUser({
-      data: { barbearias_favoritas: novasFavoritas },
-    });
+    const { error } = await neon.from("profiles").upsert({
+      id: user.id,
+      barbearias_favoritas: novasFavoritas,
+    }, { onConflict: "id" });
     if (error) {
       console.error("Não foi possível salvar a barbearia favorita:", error);
       return;
@@ -300,6 +308,7 @@ export default function MinhaContaPage() {
   // =========================
 
   function abrirConfirmacaoCancelamento(agendamento: Agendamento) {
+    setMensagemConta("");
     setAgendamentoParaCancelar(agendamento);
     setCancelamentoConfirmado(false);
     setErroCancelamento("");
@@ -325,18 +334,19 @@ export default function MinhaContaPage() {
 
     setCancelando(agendamento.id);
 
-    const supabase = createClient();
+    const neon = createClient();
 
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+    } = await neon.auth.getUser();
 
     if (!user) {
+      setErroCancelamento("Sua sessão expirou. Entre novamente para cancelar.");
       setCancelando(null);
       return;
     }
 
-    const { error } = await supabase
+    const { error } = await neon
       .from("agendamentos")
       .update({
         status: "cancelado",
@@ -348,17 +358,19 @@ export default function MinhaContaPage() {
     if (error) {
       console.error("ERRO AO CANCELAR AGENDAMENTO:", error);
 
-      alert("Não foi possível cancelar o agendamento. Tente novamente.");
+      setErroCancelamento("Não foi possível cancelar o agendamento. Tente novamente.");
 
       setCancelando(null);
       return;
     }
 
+    setAgendamentos((atuais) => atuais.map((item) => item.id === agendamento.id ? { ...item, status: "cancelado" } : item));
     await recarregarAgendamentos();
 
     setCancelando(null);
     setAgendamentoParaCancelar(null);
     setCancelamentoConfirmado(false);
+    setMensagemConta("Agendamento cancelado. O horário está disponível novamente.");
   }
 
   // =========================
@@ -512,6 +524,12 @@ export default function MinhaContaPage() {
             </button>
           </div>
         </header>
+
+        {erroCarregamento && <div role="alert" className="mb-6 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">
+          <p>{erroCarregamento}</p>
+          <button type="button" onClick={() => { setCarregando(true); setErroCarregamento(""); void carregarDados(); }} className="mt-2 min-h-11 font-semibold text-[#E0BB35]">Tentar novamente</button>
+        </div>}
+        {mensagemConta && <p role="status" className="mb-6 rounded-xl border border-[#C9A227]/30 bg-[#C9A227]/10 p-4 text-sm text-[#E0BB35]">{mensagemConta}</p>}
 
         <button
           type="button"
@@ -858,11 +876,13 @@ export default function MinhaContaPage() {
           }}
         >
           <section
+            ref={dialogCancelamentoRef}
+            tabIndex={-1}
             role="dialog"
             aria-modal="true"
             aria-labelledby="titulo-confirmar-cancelamento-cliente"
             aria-describedby="descricao-confirmar-cancelamento-cliente"
-            className="w-full max-w-md rounded-2xl border border-white/10 bg-[#11151B] p-6 shadow-2xl sm:p-7"
+            className="max-h-[92dvh] w-full max-w-md overflow-y-auto overscroll-contain rounded-2xl border border-white/10 bg-[#11151B] p-6 shadow-2xl sm:p-7"
           >
             <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl border border-red-500/20 bg-red-500/10 text-red-400">
               <Icon name="calendar" />
