@@ -1,5 +1,16 @@
 import CatalogoBarbearias from "./_components/CatalogoBarbearias";
 import { carregarCatalogoPublico } from "@/lib/neon/public-data";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Barbearias | Na Régua+",
+  description: "Encontre barbearias e agende seu horário pelo Na Régua+.",
+  openGraph: {
+    title: "Barbearias | Na Régua+",
+    description: "Encontre barbearias e agende seu horário pelo Na Régua+.",
+    type: "website",
+  },
+};
 
 interface Barbearia {
   id: string;

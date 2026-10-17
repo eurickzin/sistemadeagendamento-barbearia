@@ -11,7 +11,7 @@ const PURPOSES = ["avatar", "barbershop-logo", "barbershop-cover"] as const;
 
 async function getAuthenticatedUser() {
   const auth = createNeonServerAuth();
-  const { data: session } = await auth.getSession();
+  const { data: session } = await auth.getSession({ query: { disableCookieCache: "true" } });
   return session?.user ?? null;
 }
 

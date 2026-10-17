@@ -7,7 +7,7 @@ import Icon from "@/components/ui/Icon";
 import Image from "next/image";
 
 const AgendamentoModal = dynamic(
-  () => import("@/components/booking/AgendamentoModal"),
+  () => import("@/features/booking/components/AgendamentoModal"),
   { loading: () => null },
 );
 

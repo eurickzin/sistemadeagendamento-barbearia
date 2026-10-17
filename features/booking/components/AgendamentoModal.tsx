@@ -3,9 +3,11 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { createClient } from "@/lib/neon/client";
+import { saveOwnProfile } from "@/lib/neon/profile";
 import Icon from "@/components/ui/Icon";
-import OAuthButtons from "@/components/auth/OAuthButtons";
+import OAuthButtons from "@/features/auth/components/OAuthButtons";
 import { useDialogFocus } from "@/lib/useDialogFocus";
+import { agoraEmFortaleza } from "@/lib/fortaleza-time";
 
 interface Servico {
   id: number;
@@ -61,12 +63,7 @@ const NOMES_MESES = [
 const DIAS_SEMANA = ["D", "S", "T", "Q", "Q", "S", "S"];
 
 function dataLocal(): string {
-  const agora = new Date();
-  const ano = agora.getFullYear();
-  const mes = String(agora.getMonth() + 1).padStart(2, "0");
-  const dia = String(agora.getDate()).padStart(2, "0");
-
-  return `${ano}-${mes}-${dia}`;
+  return agoraEmFortaleza().data;
 }
 
 function minutosDoHorario(horario: string): number {
@@ -111,8 +108,8 @@ export default function AgendamentoModal({
   const [dataSelecionada, setDataSelecionada] = useState(dataLocal());
 
   const [mesVisivel, setMesVisivel] = useState(() => {
-    const hoje = new Date();
-    return new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+    const [ano, mes] = dataLocal().split("-").map(Number);
+    return new Date(ano, mes - 1, 1);
   });
 
   const [horarioSelecionado, setHorarioSelecionado] = useState("");
@@ -191,10 +188,10 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
     ...Array.from({ length: quantidadeDias }, (_, i) => i + 1),
   ];
 
-  const hoje = new Date();
+  const [anoHoje, mesHoje] = dataLocal().split("-").map(Number);
   const primeiroMesPermitido = new Date(
-    hoje.getFullYear(),
-    hoje.getMonth(),
+    anoHoje,
+    mesHoje - 1,
     1
   );
 
@@ -239,10 +236,10 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
       setBarbeiroSelecionadoId(null);
       setDataSelecionada(dataLocal());
 
-      const hojeAtual = new Date();
+      const [anoAtual, mesAtual] = dataLocal().split("-").map(Number);
 
       setMesVisivel(
-        new Date(hojeAtual.getFullYear(), hojeAtual.getMonth(), 1)
+        new Date(anoAtual, mesAtual - 1, 1)
       );
 
       const {
@@ -438,15 +435,13 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
     const inicioNovo = minutosDoHorario(horario);
     const fimNovo = inicioNovo + servicoSelecionado.duracao;
 
-    const agora = new Date();
-    const hojeAtual = dataLocal();
+    const agora = agoraEmFortaleza();
+    const hojeAtual = agora.data;
 
     if (dataSelecionada < hojeAtual) return false;
 
     if (dataSelecionada === hojeAtual) {
-      const minutosAgora = agora.getHours() * 60 + agora.getMinutes();
-
-      if (inicioNovo <= minutosAgora) return false;
+      if (inicioNovo <= agora.minutos) return false;
     }
 
     if (fimNovo > minutosDoHorario(fechamentoDisponivel)) return false;
@@ -560,12 +555,11 @@ const [carregandoCadastro, setCarregandoCadastro] = useState(false);
       }
 
       if (data.user && data.session) {
-        const { error: profileError } = await neon.from("profiles").upsert({
-          id: data.user.id,
+        const profileSaved = await saveOwnProfile(neon, data.user.id, {
           nome: nomeCadastro.trim(),
           telefone: telefoneCadastro.trim(),
-        }, { onConflict: "id" });
-        if (profileError) {
+        });
+        if (!profileSaved) {
           setErroCadastro("Conta criada, mas não foi possível salvar seu perfil. Entre e complete seus dados nas configurações.");
           return;
         }

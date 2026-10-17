@@ -1,40 +1,64 @@
 # Na Régua+
 
-Sistema de agendamento e gestão para barbearias, feito com Next.js App Router, React e Supabase.
+Aplicação de agendamento e gestão para barbearias, feita com Next.js App Router e React. O backend usa Neon para Postgres e autenticação; imagens de perfil usam Neon Object Storage.
 
-## Organização do projeto
+## Estrutura
 
 ```text
-app/                         Rotas, layouts e estilos globais do Next.js
-├── auth/callback/            Retorno da autenticação
-├── barbearia/[slug]/         Página pública de uma barbearia
-├── barbearias/               Catálogo de barbearias
+app/                         Rotas, layouts e composição das páginas
+├── _components/landing/      Navegação e animações exclusivas da página inicial
+├── api/                     Route Handlers para integrações do servidor
+├── auth/                    Callback de autenticação
+├── barbearia/ e barbearias/  Páginas públicas e catálogo
 ├── minha-conta/              Área do cliente
-└── painel/                   Autenticação e gestão da barbearia
+└── painel/                   Área do proprietário
 
-components/                   Componentes reutilizados entre rotas
-├── auth/                     Cadastro e login
-├── booking/                  Agendamento e seleção de barbearia
-├── calendar/                 Calendário
-└── ui/                       Ícones, animações e tema
+features/                    Interfaces e fluxos próprios de cada domínio
+├── auth/                     Login, cadastro e autenticação do proprietário
+├── booking/                  Reserva, seleção de barbearia e calendário
+├── customer-account/         Conta, agendamentos e preferências do cliente
+└── dashboard/                Visão geral, agenda, clientes e configurações
 
-lib/                          Integrações e funções compartilhadas
-└── supabase/                 Clientes Supabase para servidor e navegador
+components/                  Apresentação compartilhada entre domínios
+└── ui/                       Ícones e tema reutilizados
 
-supabase/                     Scripts SQL para configuração do banco
-archive/legacy/               Cópias antigas mantidas fora das rotas e do código ativo
-public/                       Imagens e arquivos estáticos
+lib/                          Infraestrutura e utilitários sem interface
+├── neon/                      Auth, Data API, SQL server-side e Storage
+├── security/                  Validação de arquivos e requisições
+└── auth/                      Regras de redirecionamento de autenticação
+
+neon/                         Preflight e migrações SQL versionadas
+tests/                        Testes unitários e integração
+archive/supabase-legacy/       SQL e teste históricos do backend anterior
 ```
 
-As páginas e layouts ficam em `app/`, seguindo os nomes especiais do App Router. Componentes usados por uma única rota ficam junto dela em uma pasta privada `_components/`; componentes compartilhados ficam em `components/`. O grupo `(dashboard)` organiza as telas do painel sem alterar os endereços das rotas.
+## Limites entre camadas
+
+- `app/` define URLs, layouts e conecta recursos; componentes de uma única rota ficam em pastas privadas como `_components/`.
+- `features/` concentra a interface e o fluxo de um domínio. Uma feature pode usar outra por uma interface pública, mas não importa páginas de `app/`.
+- `components/` guarda peças visuais realmente compartilhadas e sem regras de negócio.
+- `lib/` contém integrações e funções puras. O código de infraestrutura não depende de componentes ou páginas.
+- `neon/` contém mudanças de banco e instruções operacionais; SQL de migração não é executado pelo frontend.
 
 ## Desenvolvimento
 
-Instale as dependências e inicie o servidor:
+Configure as variáveis locais com base em `neon/env.example`, instale as dependências e inicie o servidor:
 
 ```bash
 npm install
 npm run dev
 ```
 
-Os comandos `npm run build` e `npm run lint` executam o build e o ESLint, respectivamente.
+Verificações disponíveis:
+
+```bash
+npm run lint
+npx tsc --noEmit
+npm run test:unit
+npm run build
+```
+
+Os arquivos antigos do Supabase estão arquivados em `archive/supabase-legacy/`;
+eles não fazem parte do runtime nem validam o backend Neon atual.
+
+Antes de aplicar alterações de banco, leia `neon/README.md` e execute `neon/preflight.sql` no projeto de teste correto.

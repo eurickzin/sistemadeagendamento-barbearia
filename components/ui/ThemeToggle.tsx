@@ -45,8 +45,8 @@ export default function ThemeToggle({ variant = "floating" }: { variant?: "float
       aria-label={`Ativar modo ${theme === "dark" ? "claro" : "escuro"}`}
       title={`Ativar modo ${theme === "dark" ? "claro" : "escuro"}`}
       className={variant === "inline"
-        ? "theme-toggle-inline inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition hover:scale-105 focus-visible:outline-none sm:h-10 sm:w-10"
-        : "theme-toggle z-[10000] inline-flex h-10 w-10 items-center justify-center rounded-full border shadow-lg transition-all hover:scale-105 focus-visible:outline-none"}
+        ? "theme-toggle-inline inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A227] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B0F14] sm:h-10 sm:w-10"
+        : "theme-toggle z-[10000] inline-flex h-10 w-10 items-center justify-center rounded-full border shadow-lg transition-all hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A227] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B0F14]"}
     >
       <svg
         aria-hidden="true"

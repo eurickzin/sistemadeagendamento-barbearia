@@ -6,7 +6,7 @@ import { safeAuthDestination } from "@/lib/auth/safe-redirect";
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const auth = createNeonServerAuth();
-  const { data: session } = await auth.getSession();
+  const { data: session } = await auth.getSession({ query: { disableCookieCache: "true" } });
   if (!session?.user) {
     return NextResponse.redirect(new URL("/?erro=confirmacao", url.origin));
   }

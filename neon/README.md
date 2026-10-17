@@ -47,5 +47,25 @@ use um `DROP` genérico como reversão. Antes do corte, mantenha o Supabase
 operacional. A troca das variáveis e endpoints só deve ocorrer após testes
 conectados de Auth, Data API, RLS, reserva concorrente e upload.
 
-As funções e políticas dos arquivos em `supabase/` são específicas do
-Supabase e **não** devem ser executadas no Neon.
+Os scripts Supabase antigos foram preservados em `archive/supabase-legacy/`.
+Eles são específicos do Supabase e **não** devem ser executados no Neon. A
+suíte de integração arquivada também não valida a configuração atual do Neon;
+os testes de integração Neon ainda precisam ser preparados e executados em um
+projeto isolado.
+
+## Barbearias desativadas
+
+`migrations/202610160001_inactive_shop_authorization.sql` restringe as
+políticas de proprietário quando `barbearias.ativa = false`. O proprietário
+continua podendo ler somente a própria linha da barbearia para que o login
+identifique a desativação. Clientes continuam podendo consultar e cancelar os
+próprios agendamentos conforme as regras de cancelamento existentes. O servidor
+também exige barbearia ativa antes de aceitar upload de logo ou capa.
+
+Esta migração **não é executada pelo aplicativo**. Antes de aplicá-la, revise
+o projeto de destino, faça um snapshot, confira os nomes das políticas com
+`neon/preflight.sql` e execute o arquivo inteiro em transação no SQL Editor.
+Depois, recarregue o schema da Data API e valide com uma barbearia descartável
+que as leituras e gravações do proprietário ficam bloqueadas quando inativa,
+enquanto a consulta da própria barbearia continua disponível. Não desative
+uma barbearia existente para esse teste.

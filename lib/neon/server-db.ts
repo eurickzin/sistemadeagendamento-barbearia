@@ -11,7 +11,8 @@ export async function userOwnsBarbershop(userId: string) {
   const sql = getSql();
   const rows = await sql`
     select exists (
-      select 1 from public.barbearias where proprietario_id = ${userId}::uuid
+      select 1 from public.barbearias
+      where proprietario_id = ${userId}::uuid and ativa
     ) as owns_shop
   `;
   return rows[0]?.owns_shop === true;

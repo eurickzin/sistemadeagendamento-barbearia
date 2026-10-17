@@ -1,8 +1,8 @@
 import Link from "next/link";
 
-import CadastroButton from "@/components/auth/CadastroButton";
-import LandingNavigation from "@/components/navigation/LandingNavigation";
-import Reveal from "@/components/ui/Reveal";
+import CadastroButton from "@/features/auth/components/CadastroButton";
+import LandingNavigation from "@/app/_components/landing/LandingNavigation";
+import Reveal from "@/app/_components/landing/Reveal";
 
 const features = [
   {
@@ -184,12 +184,18 @@ export default function Home() {
   </Reveal>
 </div>
 
-              <Link
-                href="#planos"
-                className="mt-5 inline-flex min-h-11 items-center text-sm font-semibold text-[#E0BB35] underline decoration-[#C9A227]/40 underline-offset-4 transition hover:text-white"
-              >
-                Planos a partir de R$ 59,90 por mês <span className="ml-2" aria-hidden="true">→</span>
-              </Link>
+              <div className="mt-5 flex flex-col items-start gap-2 sm:flex-row sm:flex-wrap sm:gap-x-6">
+                <Link href="/painel/cadastro" className="inline-flex min-h-11 items-center text-sm font-semibold text-[#E0BB35] underline decoration-[#C9A227]/40 underline-offset-4 transition hover:text-white">
+                  Sou barbeiro: criar conta e cadastrar barbearia →
+                </Link>
+
+                <Link
+                  href="#planos"
+                  className="inline-flex min-h-11 items-center text-sm font-semibold text-[#E0BB35] underline decoration-[#C9A227]/40 underline-offset-4 transition hover:text-white"
+                >
+                  Planos a partir de R$ 59,90 por mês <span className="ml-2" aria-hidden="true">→</span>
+                </Link>
+              </div>
 
               <Reveal direction="up" delay={300}>
                 <div className="mt-10 flex flex-wrap gap-x-8 gap-y-3 text-sm text-zinc-500">
@@ -441,6 +447,10 @@ export default function Home() {
         Tenha uma gestão mais simples, uma agenda organizada e uma
         experiência melhor para seus clientes.
       </p>
+
+      <Link href="/painel/cadastro" className="mt-8 inline-flex min-h-11 items-center justify-center rounded-xl bg-[#C9A227] px-6 py-3 font-semibold text-black transition hover:bg-[#E0BB35]">
+        Cadastrar minha barbearia
+      </Link>
 
       <p className="mx-auto mt-8 max-w-xl text-sm leading-6 text-zinc-400">
         Quer aderir ao sistema ou tirar dúvidas? Fale com a gente pelas redes:

@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 
 import { createClient } from "@/lib/neon/client";
+import { saveOwnProfile } from "@/lib/neon/profile";
 import { useDialogFocus } from "@/lib/useDialogFocus";
 
 interface CadastroModalProps {
@@ -68,12 +69,11 @@ export default function CadastroModal({
     // With email confirmation enabled, signUp returns a user without an
     // authenticated session. Defer the RLS-protected profile write until login.
     if (data.user && data.session) {
-      const { error: profileError } = await neon.from("profiles").upsert({
-        id: data.user.id,
+      const profileSaved = await saveOwnProfile(neon, data.user.id, {
         nome: nome.trim(),
         telefone: telefone.trim(),
-      }, { onConflict: "id" });
-      if (profileError) {
+      });
+      if (!profileSaved) {
         setErro("Conta criada, mas não foi possível salvar o perfil. Entre e complete seus dados nas configurações.");
         setCarregando(false);
         return;

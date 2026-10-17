@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { agoraEmFortaleza } from "@/lib/fortaleza-time";
 
 interface CalendarioCustomizadoProps {
   value: string;
@@ -56,7 +57,7 @@ function removerHora(data: Date) {
 }
 
 function obterHoje() {
-  return removerHora(new Date());
+  return removerHora(new Date(`${agoraEmFortaleza().data}T12:00:00`));
 }
 
 export default function CalendarioCustomizado({

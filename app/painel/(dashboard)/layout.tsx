@@ -35,6 +35,7 @@ export default function DashboardLayout({
 
   const [barbearia, setBarbearia] = useState<Barbearia | null>(null);
   const [carregando, setCarregando] = useState(true);
+  const [erroAcesso, setErroAcesso] = useState("");
   const [notificacoes, setNotificacoes] = useState<Notificacao[]>([]);
   const [totalNaoLidas, setTotalNaoLidas] = useState(0);
   const [notificacoesAbertas, setNotificacoesAbertas] = useState(false);
@@ -53,17 +54,29 @@ export default function DashboardLayout({
 
       const { data, error } = await neon
         .from("barbearias")
-        .select("id, nome, logo_url, slug")
+        .select("id, nome, logo_url, slug, ativa")
         .eq("proprietario_id", user.id)
         .maybeSingle();
 
       if (error) {
         console.error("Erro ao carregar barbearia:", error);
+        setErroAcesso("Não foi possível verificar o acesso ao painel. Atualize a página.");
+        setCarregando(false);
+        return;
       }
 
-      if (data) {
-        setBarbearia(data);
+      if (!data) {
+        router.replace("/painel/cadastrar-barbearia");
+        return;
       }
+
+      if (!data.ativa) {
+        await neon.auth.signOut();
+        router.replace("/painel/login");
+        return;
+      }
+
+      setBarbearia(data);
 
       setCarregando(false);
     }
@@ -182,6 +195,10 @@ export default function DashboardLayout({
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-700 border-t-[#C9A227]" />
       </main>
     );
+  }
+
+  if (erroAcesso) {
+    return <main className="flex min-h-screen items-center justify-center bg-[#0B0F14] px-6 text-center text-red-300" role="alert">{erroAcesso}</main>;
   }
 
   const classeLink = (ativo: boolean) =>

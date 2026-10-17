@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/neon/client";
 import Icon from "@/components/ui/Icon";
@@ -14,7 +14,27 @@ export default function CadastrarBarbearia() {
   const [descricao, setDescricao] = useState("");
 
   const [carregando, setCarregando] = useState(false);
+  const [verificandoSessao, setVerificandoSessao] = useState(true);
   const [erro, setErro] = useState("");
+
+  useEffect(() => {
+    let ativo = true;
+    async function verificarSessao() {
+      try {
+        const { data: { user } } = await createClient().auth.getUser();
+        if (!ativo) return;
+        if (!user) {
+          router.replace("/painel/login");
+          return;
+        }
+        setVerificandoSessao(false);
+      } catch {
+        if (ativo) router.replace("/painel/login");
+      }
+    }
+    void verificarSessao();
+    return () => { ativo = false; };
+  }, [router]);
 
   function gerarSlug(valor: string) {
     return valor
@@ -24,7 +44,8 @@ export default function CadastrarBarbearia() {
       .replace(/[^a-z0-9\s-]/g, "")
       .trim()
       .replace(/\s+/g, "-")
-      .replace(/-+/g, "-");
+      .replace(/-+/g, "-")
+      .replace(/^-+|-+$/g, "");
   }
 
   function alterarNome(valor: string) {
@@ -37,8 +58,8 @@ export default function CadastrarBarbearia() {
 
     setErro("");
 
-    if (!nome.trim()) {
-      setErro("Digite o nome da sua barbearia.");
+    if (nome.trim().length < 2) {
+      setErro("Digite o nome da sua barbearia com pelo menos 2 caracteres.");
       return;
     }
 
@@ -121,6 +142,11 @@ export default function CadastrarBarbearia() {
 
   return (
     <main className="min-h-screen bg-[#0B0F14] px-4 py-6 text-white sm:px-6 sm:py-10">
+      {verificandoSessao ? (
+        <div role="status" className="flex min-h-[calc(100vh-5rem)] items-center justify-center text-sm text-zinc-400">
+          Verificando sua conta...
+        </div>
+      ) : (
       <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-xl items-center justify-center">
         <div className="w-full">
 
@@ -151,38 +177,44 @@ export default function CadastrarBarbearia() {
 
               {/* NOME */}
               <div>
-                <label className="mb-2 block text-sm font-medium text-zinc-300">
+                <label htmlFor="barbearia-nome" className="mb-2 block text-sm font-medium text-zinc-300">
                   Nome da barbearia
                 </label>
 
                 <input
+                  id="barbearia-nome"
                   type="text"
                   value={nome}
                   onChange={(event) => alterarNome(event.target.value)}
                   placeholder="Ex: Na Régua Barbearia"
                   disabled={carregando}
+                  minLength={2}
+                  maxLength={120}
+                  required
                   className="w-full rounded-xl border border-white/10 bg-[#090D12] px-4 py-3.5 text-sm text-white outline-none transition placeholder:text-zinc-700 focus:border-[#C9A227]/50"
                 />
               </div>
 
               {/* SLUG */}
               <div>
-                <label className="mb-2 block text-sm font-medium text-zinc-300">
+                <label htmlFor="barbearia-slug" className="mb-2 block text-sm font-medium text-zinc-300">
                   Endereço da página
                 </label>
 
                 <div className="flex items-center rounded-xl border border-white/10 bg-[#090D12] focus-within:border-[#C9A227]/50">
                   <span className="pl-4 text-sm text-zinc-600">
-                    naregua.com/
+                    /barbearia/
                   </span>
 
                   <input
+                    id="barbearia-slug"
                     type="text"
                     value={slug}
                     onChange={(event) =>
                       setSlug(gerarSlug(event.target.value))
                     }
                     disabled={carregando}
+                    required
                     className="min-w-0 flex-1 bg-transparent px-1 py-3.5 pr-4 text-sm text-white outline-none"
                   />
                 </div>
@@ -194,11 +226,12 @@ export default function CadastrarBarbearia() {
 
               {/* TELEFONE */}
               <div>
-                <label className="mb-2 block text-sm font-medium text-zinc-300">
+                <label htmlFor="barbearia-telefone" className="mb-2 block text-sm font-medium text-zinc-300">
                   WhatsApp / Telefone
                 </label>
 
                 <input
+                  id="barbearia-telefone"
                   type="tel"
                   value={telefone}
                   onChange={(event) => setTelefone(event.target.value)}
@@ -210,7 +243,7 @@ export default function CadastrarBarbearia() {
 
               {/* DESCRIÇÃO */}
               <div>
-                <label className="mb-2 block text-sm font-medium text-zinc-300">
+                <label htmlFor="barbearia-descricao" className="mb-2 block text-sm font-medium text-zinc-300">
                   Descrição
                   <span className="ml-2 text-xs font-normal text-zinc-600">
                     opcional
@@ -218,6 +251,7 @@ export default function CadastrarBarbearia() {
                 </label>
 
                 <textarea
+                  id="barbearia-descricao"
                   value={descricao}
                   onChange={(event) => setDescricao(event.target.value)}
                   placeholder="Conte um pouco sobre sua barbearia..."
@@ -229,7 +263,7 @@ export default function CadastrarBarbearia() {
 
               {/* ERRO */}
               {erro && (
-                <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+                <div role="alert" className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
                   {erro}
                 </div>
               )}
@@ -254,6 +288,7 @@ export default function CadastrarBarbearia() {
 
         </div>
       </div>
+      )}
     </main>
   );
 }

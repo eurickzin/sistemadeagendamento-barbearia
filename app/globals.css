@@ -6,6 +6,12 @@
   --foreground: #ededed;
 }
 
+/* Small supporting text must remain readable on the dark cards and canvas. */
+:root:not([data-theme="light"]) [class~="text-zinc-500"],
+:root:not([data-theme="light"]) [class~="text-zinc-600"] {
+  color: #a1a1aa;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

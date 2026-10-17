@@ -15,8 +15,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="pt-BR" className={`${geistSans.variable} h-full antialiased`}>
-      <body className="sharp-ui min-h-full flex flex-col">
+    <html lang="pt-BR" data-scroll-behavior="smooth" className={`${geistSans.variable} h-full antialiased`}>
+      <body className={`${geistSans.className} sharp-ui min-h-full flex flex-col`}>
         {children}
         <ThemeToggle />
       </body>

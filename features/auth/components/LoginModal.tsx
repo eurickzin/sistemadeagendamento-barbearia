@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/neon/client";
-import OAuthButtons from "@/components/auth/OAuthButtons";
+import OAuthButtons from "@/features/auth/components/OAuthButtons";
 import { useDialogFocus } from "@/lib/useDialogFocus";
 
 interface LoginModalProps {
